@@ -42,39 +42,16 @@ func (h *Handler) discoverBrandingAsync(definitionName, baseURL string) {
 	}()
 }
 
-// applyBrandingByName locates the tracker by DefinitionName in the
-// current (unlocked) config and writes the branding fields. Saves
-// only if something actually changed. A locked store (logout / timeout
-// between the fetch and now) is silently ignored — the next refresh
-// or save will trigger another attempt.
+// applyBrandingByName writes the discovered branding fields for definitionName.
+// ApplyBranding holds the store's write lock for the full read-modify-write,
+// so this goroutine cannot race with a concurrent user-triggered Save.
 func (h *Handler) applyBrandingByName(definitionName string, res branding.Result) {
-	cfg := h.store.Get()
-	if cfg.Trackers == nil {
-		return // store locked, or no trackers
-	}
-	changed := false
-	for i, t := range cfg.Trackers {
-		if t.DefinitionName != definitionName {
-			continue
-		}
-		if res.FaviconDataURI != "" && cfg.Trackers[i].FaviconDataURI != res.FaviconDataURI {
-			cfg.Trackers[i].FaviconDataURI = res.FaviconDataURI
-			changed = true
-		}
-		if res.ThemeColor != "" && cfg.Trackers[i].ThemeColor != res.ThemeColor {
-			cfg.Trackers[i].ThemeColor = res.ThemeColor
-			changed = true
-		}
-		break
-	}
-	if !changed {
-		return
-	}
-	if err := h.store.Save(&cfg); err != nil {
-		// Most likely cause: store locked (session ended between
-		// discovery start and now). Quiet info-level log.
+	changed, err := h.store.ApplyBranding(definitionName, res.FaviconDataURI, res.ThemeColor)
+	if err != nil {
 		h.log.Info("BRAND", definitionName+": save skipped — "+err.Error())
 		return
 	}
-	h.log.Info("BRAND", definitionName+": branding saved")
+	if changed {
+		h.log.Info("BRAND", definitionName+": branding saved")
+	}
 }

@@ -126,6 +126,9 @@ func classifyTracker(i int, t *config.TrackerEntry, byID map[int]prowlarr.Indexe
 		return row
 	}
 	pURL, pKey := prowlarr.ExtractCreds(idx.Fields)
+	if pURL == "" && len(idx.IndexerUrls) > 0 {
+		pURL = idx.IndexerUrls[0]
+	}
 	row.ProwlarrURL = pURL
 	row.ProwlarrHasKey = pKey != ""
 	if prowlarr.NormalizeURL(pURL) != prowlarr.NormalizeURL(t.TrackerURL) || pKey != t.APIKey {

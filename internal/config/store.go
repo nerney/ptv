@@ -380,6 +380,48 @@ func (s *Store) Save(cfg *Config) error {
 	return nil
 }
 
+// ApplyBranding atomically patches the favicon and theme-color fields for the
+// tracker identified by definitionName. Unlike Save, it holds the write lock
+// for the full read-modify-write cycle, so a concurrent user-triggered Save
+// cannot race with a background branding goroutine.
+func (s *Store) ApplyBranding(definitionName, faviconDataURI, themeColor string) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.unlocked || s.derivedKey == nil {
+		return false, ErrLocked
+	}
+	changed := false
+	for i, t := range s.config.Trackers {
+		if t.DefinitionName != definitionName {
+			continue
+		}
+		if faviconDataURI != "" && s.config.Trackers[i].FaviconDataURI != faviconDataURI {
+			s.config.Trackers[i].FaviconDataURI = faviconDataURI
+			changed = true
+		}
+		if themeColor != "" && s.config.Trackers[i].ThemeColor != themeColor {
+			s.config.Trackers[i].ThemeColor = themeColor
+			changed = true
+		}
+		break
+	}
+	if !changed {
+		return false, nil
+	}
+	plaintext, err := json.Marshal(s.config)
+	if err != nil {
+		return false, fmt.Errorf("marshal: %w", err)
+	}
+	blob, err := seal(s.derivedKey, plaintext)
+	if err != nil {
+		return false, fmt.Errorf("seal: %w", err)
+	}
+	if err := writeAtomic(filepath.Join(s.dir, configFilename), blob, 0600); err != nil {
+		return false, fmt.Errorf("write config: %w", err)
+	}
+	return true, nil
+}
+
 // writeAtomic writes data to a temp file in the same directory, fsyncs,
 // then renames over the target. On POSIX the rename is atomic — a
 // concurrent reader sees either the old file or the new one, never a
