@@ -92,13 +92,13 @@ func (h *Handler) importSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := prowlarr.New(cfg.ProwlarrURL, cfg.ProwlarrAPIKey, h.log)
-	urlMap, typeMap, nameToDef, err := h.catalogMaps()
+	urlMap, typeMap, err := h.catalogMaps()
 	if err != nil {
 		flash(w, r, pathImport, "", "Catalog unavailable: "+err.Error())
 		return
 	}
 
-	result := h.runImport(client, &cfg, idStrs, urlMap, typeMap, nameToDef)
+	result := h.runImport(client, &cfg, idStrs, urlMap, typeMap)
 
 	if len(result.imported) > 0 {
 		if err := h.store.Save(&cfg); err != nil {
@@ -120,24 +120,19 @@ type importOutcome struct {
 	unvalidated []string
 }
 
-// catalogMaps loads the catalog and builds lookup tables used by the import
-// flow: URL → definition name, definition name → tracker type ID, and
-// lowercase definition name → TrackerDef (for name-based fallback when a
-// Prowlarr indexer has no baseurl field — the def's links ARE the URL).
-func (h *Handler) catalogMaps() (urlMap map[string]string, typeMap map[string]string, nameToDef map[string]defs.TrackerDef, err error) {
+// catalogMaps loads the catalog and builds two lookup tables used by the
+// import flow: URL → definition name, and definition name → tracker type ID.
+func (h *Handler) catalogMaps() (urlMap map[string]string, typeMap map[string]string, err error) {
 	allDefs, err := h.syncer.Catalog()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 	urlMap = buildURLMap(allDefs)
 	typeMap = make(map[string]string, len(allDefs))
-	nameToDef = make(map[string]defs.TrackerDef, len(allDefs))
 	for _, d := range allDefs {
-		lower := strings.ToLower(d.Name)
-		typeMap[lower] = d.TypeID
-		nameToDef[lower] = d
+		typeMap[strings.ToLower(d.Name)] = d.TypeID
 	}
-	return urlMap, typeMap, nameToDef, nil
+	return urlMap, typeMap, nil
 }
 
 // runImport iterates the selected Prowlarr IDs and appends the
@@ -149,7 +144,6 @@ func (h *Handler) runImport(
 	idStrs []string,
 	urlMap map[string]string,
 	typeMap map[string]string,
-	nameToDef map[string]defs.TrackerDef,
 ) importOutcome {
 	out := importOutcome{}
 	already := managedSet(cfg.Trackers)
@@ -166,7 +160,7 @@ func (h *Handler) runImport(
 			continue
 		}
 
-		entry, skipReason := h.buildImportEntry(idx, urlMap, typeMap, nameToDef, already)
+		entry, skipReason := h.buildImportEntry(idx, urlMap, typeMap, already)
 		if skipReason != "" {
 			if skipReason != skipAlreadyManaged {
 				// "already managed" is a no-op, not a failure to surface.
@@ -217,21 +211,13 @@ func (h *Handler) buildImportEntry(
 	idx *prowlarr.Indexer,
 	urlMap map[string]string,
 	typeMap map[string]string,
-	nameToDef map[string]defs.TrackerDef,
 	already map[string]bool,
 ) (*config.TrackerEntry, string) {
 	idxURL, key := prowlarr.ExtractCreds(idx.Fields)
-	schemaName := urlMap[prowlarr.NormalizeURL(idxURL)]
-	if schemaName == "" {
-		// No URL in Prowlarr fields — fall back to name match. The def's
-		// links ARE the tracker URL; the catalog is the source of truth.
-		if d, ok := nameToDef[strings.ToLower(idx.Name)]; ok {
-			schemaName = d.Name
-			if idxURL == "" && len(d.URLs) > 0 {
-				idxURL = d.URLs[0]
-			}
-		}
+	if idxURL == "" && len(idx.IndexerUrls) > 0 {
+		idxURL = idx.IndexerUrls[0]
 	}
+	schemaName := urlMap[prowlarr.NormalizeURL(idxURL)]
 	if schemaName == "" {
 		return nil, skipURLNotCatalog
 	}

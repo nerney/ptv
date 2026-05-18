@@ -622,10 +622,6 @@ func (h *Handler) loadImportable(client *prowlarr.Client, cfg *config.Config) ([
 		return nil, fmt.Errorf("catalog: %w", err)
 	}
 	urlToName := buildURLMap(allDefs)
-	nameToDef := make(map[string]defs.TrackerDef, len(allDefs))
-	for _, d := range allDefs {
-		nameToDef[strings.ToLower(d.Name)] = d
-	}
 
 	configured, err := client.GetIndexers()
 	if err != nil {
@@ -638,16 +634,11 @@ func (h *Handler) loadImportable(client *prowlarr.Client, cfg *config.Config) ([
 	var out []configuredImport
 	for _, idx := range configured {
 		idxURL, key := prowlarr.ExtractCreds(idx.Fields)
-		schemaName := urlToName[prowlarr.NormalizeURL(idxURL)]
-		if schemaName == "" {
-			if d, ok := nameToDef[strings.ToLower(idx.Name)]; ok {
-				schemaName = d.Name
-				if idxURL == "" && len(d.URLs) > 0 {
-					idxURL = d.URLs[0]
-				}
-			}
+		if idxURL == "" && len(idx.IndexerUrls) > 0 {
+			idxURL = idx.IndexerUrls[0]
 		}
-		if schemaName == "" || already[strings.ToLower(schemaName)] {
+		schemaName, inCatalog := urlToName[prowlarr.NormalizeURL(idxURL)]
+		if !inCatalog || already[strings.ToLower(schemaName)] {
 			continue
 		}
 		out = append(out, configuredImport{

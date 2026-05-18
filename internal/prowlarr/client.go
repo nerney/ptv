@@ -73,6 +73,8 @@ type Indexer struct {
 	ConfigContract     string        `json:"configContract"`
 	Fields             []SchemaField `json:"fields"`
 	Tags               []int         `json:"tags"`
+	IndexerUrls        []string      `json:"indexerUrls"`
+	DefinitionName     string        `json:"definitionName"`
 }
 
 func (c *Client) do(method, path string, body io.Reader) (*http.Response, []byte, error) {
