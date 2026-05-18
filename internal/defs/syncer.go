@@ -41,12 +41,13 @@ func (s State) String() string {
 const repoURL = "https://github.com/Prowlarr/Indexers.git"
 
 type Syncer struct {
-	dir   string
-	log   *logger.Logger
-	mu    sync.RWMutex
-	state State
-	msg   string
-	ready chan struct{} // closed once first sync attempt completes
+	dir     string
+	log     *logger.Logger
+	mu      sync.RWMutex
+	state   State
+	msg     string
+	catalog []TrackerDef // loaded once at startup; nil until ready
+	ready   chan struct{} // closed once first sync attempt completes
 }
 
 func New(configDir string, log *logger.Logger) *Syncer {
@@ -64,7 +65,9 @@ func (s *Syncer) Start(ctx context.Context) {
 }
 
 // WaitReady blocks until the first sync attempt completes or ctx expires.
-// Returns non-nil only if no definitions are available at all.
+// Returns non-nil only when no definitions are available at all (clone failed
+// and no prior clone exists on disk). A stale-pull result is NOT an error —
+// the catalog is usable.
 func (s *Syncer) WaitReady(ctx context.Context) error {
 	select {
 	case <-s.ready:
@@ -86,6 +89,17 @@ func (s *Syncer) Status() (State, string) {
 	return s.state, s.msg
 }
 
+// Catalog returns the in-memory catalog built at startup. It is safe to call
+// concurrently and returns immediately after WaitReady unblocks.
+func (s *Syncer) Catalog() ([]TrackerDef, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.catalog == nil {
+		return nil, fmt.Errorf("definitions not available: %s", s.msg)
+	}
+	return s.catalog, nil
+}
+
 func (s *Syncer) run(ctx context.Context) {
 	defer close(s.ready)
 	s.set(StateSyncing, "")
@@ -95,20 +109,37 @@ func (s *Syncer) run(ctx context.Context) {
 		if err := s.gitClone(ctx); err != nil {
 			s.log.Err("DEFS", "Clone failed: "+err.Error())
 			s.set(StateUnavailable, err.Error())
-			return
+			return // no definitions at all — WaitReady returns an error, main exits
 		}
 		s.log.Info("DEFS", "Clone complete")
-		s.set(StateOK, "")
+		s.cacheAndSetState(StateOK, "")
 		return
 	}
 
 	if err := s.gitPull(ctx); err != nil {
 		s.log.Err("DEFS", "Pull failed — using stale definitions: "+err.Error())
-		s.set(StateStalePullFailed, err.Error())
+		s.cacheAndSetState(StateStalePullFailed, err.Error())
 		return
 	}
 	s.log.Info("DEFS", "Pull complete")
-	s.set(StateOK, "")
+	s.cacheAndSetState(StateOK, "")
+}
+
+// cacheAndSetState parses the definition files, stores the result in memory,
+// and sets the final state. If parsing fails, state becomes StateUnavailable.
+func (s *Syncer) cacheAndSetState(finalState State, finalMsg string) {
+	catalog, err := parseCatalog(s.dir)
+	if err != nil {
+		s.log.Err("DEFS", "Catalog load failed: "+err.Error())
+		s.set(StateUnavailable, "catalog load failed: "+err.Error())
+		return
+	}
+	s.mu.Lock()
+	s.catalog = catalog
+	s.state = finalState
+	s.msg = finalMsg
+	s.mu.Unlock()
+	s.log.Info("DEFS", fmt.Sprintf("Catalog loaded: %d definitions", len(catalog)))
 }
 
 func (s *Syncer) set(state State, msg string) {

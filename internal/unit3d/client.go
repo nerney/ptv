@@ -50,8 +50,8 @@ func (c *Client) FetchStats() (*Stats, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Send both auth forms — native C# Prowlarr uses ?api_token=, YAML uses Bearer header.
-	// UNIT3D accepts both simultaneously.
+	// UNIT3D accepts both Bearer token header and ?api_token= query param.
+	// Sending both covers all versions and server configurations.
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	req.Header.Set("Accept", "application/json")
 	q := req.URL.Query()

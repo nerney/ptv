@@ -46,6 +46,10 @@ func main() {
 
 	syncer := defs.New(configDir, log)
 	syncer.Start(context.Background())
+	if err := syncer.WaitReady(context.Background()); err != nil {
+		log.Err("SYSTEM", "definitions unavailable: "+err.Error())
+		os.Exit(1)
+	}
 
 	router := handlers.NewRouter(store, syncer, assets)
 

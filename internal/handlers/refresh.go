@@ -91,6 +91,9 @@ func (h *Handler) refreshOneEntry(cfg *config.Config, i int) {
 	}
 
 	tt := resolveTrackerType(entry.TrackerType)
+	if tt == nil {
+		return // unsupported tracker type — skip silently
+	}
 	stats, err := tt.FetchStats(entry.TrackerURL, entry.APIKey, h.log)
 
 	now := time.Now()
@@ -111,16 +114,11 @@ func (h *Handler) refreshOneEntry(cfg *config.Config, i int) {
 	}
 }
 
-// resolveTrackerType looks up a registered TrackerType by ID.
-// Falls back to "unit3d" to handle entries created before TrackerType
-// was introduced.
+// resolveTrackerType returns the registered TrackerType for typeID, or nil
+// if the ID is empty or unknown. A nil result means "unsupported" — the
+// caller skips that tracker rather than guessing a type.
 func resolveTrackerType(typeID string) trackertype.Type {
-	if typeID != "" {
-		if tt := trackertype.Lookup(typeID); tt != nil {
-			return tt
-		}
-	}
-	return trackertype.Lookup("unit3d")
+	return trackertype.Lookup(typeID)
 }
 
 // latestSync returns the most recent LastSync across all trackers, or nil
