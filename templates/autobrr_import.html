@@ -1,0 +1,99 @@
+{{ define "content" }}
+<header class="site-header">
+  <div class="header-brand">
+    <a href="/" class="brand-link">
+      <span class="brand-mark">PTV</span>
+      <span class="brand-sep">—</span>
+      <span class="brand-sub">AUTOBRR / IMPORT</span>
+    </a>
+  </div>
+</header>
+
+{{ template "config_nav" . }}
+{{ template "autobrr_nav" . }}
+
+<div class="page-rule"></div>
+
+<main class="config-main">
+
+  {{ if .FlashError }}
+  <div class="alert alert-error">
+    <span class="alert-dot">●</span>{{ .FlashError }}
+  </div>
+  {{ end }}
+  {{ if .FlashSuccess }}
+  <div class="alert alert-ok">
+    <span class="alert-dot">●</span>{{ .FlashSuccess }}
+  </div>
+  {{ end }}
+  {{ if .LoadError }}
+  <div class="alert alert-warn">
+    <span class="alert-dot">⚠</span>{{ .LoadError }}
+  </div>
+  {{ end }}
+
+  {{ if not .Config.AutobrrEnabled }}
+  <section class="config-section">
+    <h2 class="config-section-title">AUTOBRR REQUIRED</h2>
+    <div class="section-rule"></div>
+    <p class="config-hint">Autobrr is not enabled.</p>
+    <p class="config-hint"><a href="/config/autobrr" class="link-action">→ CONFIGURE AUTOBRR</a></p>
+  </section>
+  {{ else }}
+
+  <section class="config-section">
+    <h2 class="config-section-title">
+      AVAILABLE TO IMPORT<span class="muted"> — {{ len .Importable }}</span>
+    </h2>
+    <div class="section-rule"></div>
+
+    {{ if .Importable }}
+    <p class="config-hint">Select Autobrr indexers to import as PTV trackers. The Autobrr indexer ID is linked to the new tracker entry so toggle/remove work end-to-end.</p>
+
+    <form method="POST" action="/config/autobrr/import" class="import-form" id="import-form">
+      <label class="import-row import-row-check import-row-all">
+        <input type="checkbox" id="import-check-all" class="import-check">
+        <span class="tracker-select-name">SELECT ALL</span>
+        <span class="muted">({{ len .Importable }})</span>
+      </label>
+      <div class="import-list">
+        {{ range .Importable }}
+        <label class="import-row import-row-check">
+          <input type="checkbox" name="autobrr_id" value="{{ .AutobrrID }}" class="import-check import-check-row">
+          <span class="tracker-select-name">{{ .Name }}</span>
+          <span class="tracker-select-url">{{ .BaseURL }}</span>
+          {{ if .Enabled }}<span class="key-pill key-on">● ENABLED</span>{{ else }}<span class="key-pill key-off">○ DISABLED</span>{{ end }}
+        </label>
+        {{ end }}
+      </div>
+      <div class="import-submit-row">
+        <button type="submit" class="btn-primary">IMPORT SELECTED →</button>
+      </div>
+    </form>
+    <script>
+    (function () {
+      var all = document.getElementById("import-check-all");
+      if (!all) return;
+      var rows = document.querySelectorAll(".import-check-row");
+      function syncAll() {
+        var checked = 0;
+        rows.forEach(function (r) { if (r.checked) checked++; });
+        all.checked = checked === rows.length && rows.length > 0;
+        all.indeterminate = checked > 0 && checked < rows.length;
+      }
+      all.addEventListener("change", function () {
+        rows.forEach(function (r) { r.checked = all.checked; });
+        all.indeterminate = false;
+      });
+      rows.forEach(function (r) { r.addEventListener("change", syncAll); });
+      syncAll();
+    })();
+    </script>
+    {{ else }}
+    <p class="config-empty">No additional indexers in Autobrr match the PTV catalog.</p>
+    {{ end }}
+  </section>
+  {{ end }}
+
+</main>
+{{ end }}

@@ -1,0 +1,127 @@
+{{ define "content" }}
+<header class="site-header">
+  <div class="header-brand">
+    <a href="/" class="brand-link">
+      <span class="brand-mark">PTV</span>
+      <span class="brand-sep">—</span>
+      <span class="brand-sub">PROWLARR</span>
+    </a>
+  </div>
+</header>
+
+{{ template "config_nav" . }}
+
+<div class="page-rule"></div>
+
+<main class="config-main">
+
+  {{ if .FlashError }}
+  <div class="alert alert-error">
+    <span class="alert-dot">●</span>{{ .FlashError }}
+  </div>
+  {{ end }}
+  {{ if .FlashSuccess }}
+  <div class="alert alert-ok">
+    <span class="alert-dot">●</span>{{ .FlashSuccess }}
+  </div>
+  {{ end }}
+
+  {{ if and .Config.ProwlarrEnabled .Config.ProwlarrAPIKey }}
+  {{ template "prowlarr_nav" . }}
+  {{ end }}
+
+  <section class="config-section">
+
+    {{ if and .Config.ProwlarrEnabled .Config.ProwlarrAPIKey }}
+      <!-- Configured + enabled: pill -->
+      <details class="prowlarr-pill" data-lazy>
+        <summary class="prowlarr-pill-summary">
+          <span class="pill-check">✓</span>
+          <span class="pill-text">PROWLARR CONFIGURED</span>
+          <span class="pill-url">{{ .Config.ProwlarrURL }}</span>
+          <span class="pill-edit muted">click to edit</span>
+        </summary>
+        <template>
+        <div class="prowlarr-pill-body">
+          <form method="POST" action="/config/prowlarr" class="config-form">
+            <div class="config-row">
+              <div class="field">
+                <label class="field-label">URL</label>
+                <input class="field-input" type="url" name="url"
+                  value="{{ .Config.ProwlarrURL }}" autocomplete="off" required>
+              </div>
+              <div class="field">
+                <label class="field-label">API KEY</label>
+                <input class="field-input field-token" type="text" name="api_key"
+                  placeholder="set — enter new key to replace" autocomplete="off">
+              </div>
+              <div class="field field--action">
+                <label class="field-label">&nbsp;</label>
+                <button type="submit" class="btn-primary">SAVE →</button>
+              </div>
+            </div>
+          </form>
+          <form method="POST" action="/config/prowlarr/disable" class="inline-form prowlarr-disable">
+            <button type="submit" class="btn-sm btn-ghost">DISABLE INTEGRATION</button>
+          </form>
+        </div>
+        </template>
+      </details>
+
+      <div class="prowlarr-quick-links">
+        <a href="/config/prowlarr/import" class="link-action">→ IMPORT INDEXERS</a>
+        <a href="/config/prowlarr/sync" class="link-action">→ SYNC TO PROWLARR</a>
+      </div>
+
+    {{ else if and .Config.ProwlarrEnabled (not .Config.ProwlarrAPIKey) }}
+      <!-- Enabled but not saved -->
+      <h2 class="config-section-title">SETTINGS</h2>
+      <div class="section-rule"></div>
+      <p class="config-hint">Connect to your Prowlarr instance.</p>
+      <form method="POST" action="/config/prowlarr" class="config-form">
+        <div class="config-row">
+          <div class="field">
+            <label class="field-label">URL</label>
+            <input class="field-input" type="url" name="url"
+              value="{{ .Config.ProwlarrURL }}" placeholder="http://prowlarr:9696" autocomplete="off" required>
+          </div>
+          <div class="field">
+            <label class="field-label">API KEY</label>
+            <input class="field-input field-token" type="text" name="api_key"
+              placeholder="API key" autocomplete="off" required>
+          </div>
+          <div class="field field--action">
+            <label class="field-label">&nbsp;</label>
+            <button type="submit" class="btn-primary">SAVE →</button>
+          </div>
+        </div>
+      </form>
+      <form method="POST" action="/config/prowlarr/disable" class="inline-form prowlarr-disable">
+        <button type="submit" class="btn-sm btn-ghost">CANCEL</button>
+      </form>
+
+    {{ else if .Config.ProwlarrAPIKey }}
+      <!-- Disabled but creds preserved -->
+      <div class="prowlarr-disabled-pill">
+        <span class="pill-mute">○</span>
+        <span class="pill-text muted">PROWLARR DISABLED</span>
+        <span class="pill-sub muted">credentials preserved</span>
+        <form method="POST" action="/config/prowlarr/enable" class="inline-form">
+          <button type="submit" class="btn-sm btn-ghost">RE-ENABLE</button>
+        </form>
+      </div>
+
+    {{ else }}
+      <!-- Never configured -->
+      <h2 class="config-section-title">PROWLARR INTEGRATION</h2>
+      <div class="section-rule"></div>
+      <p class="config-hint">Prowlarr is optional. It lets you import already-configured indexers and push your tracker config out to Prowlarr.</p>
+      <form method="POST" action="/config/prowlarr/enable" class="inline-form">
+        <button type="submit" class="btn-primary">ENABLE PROWLARR INTEGRATION →</button>
+      </form>
+    {{ end }}
+
+  </section>
+
+</main>
+{{ end }}

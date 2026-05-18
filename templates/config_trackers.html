@@ -1,0 +1,246 @@
+{{ define "content" }}
+<header class="site-header">
+  <div class="header-brand">
+    <a href="/" class="brand-link">
+      <span class="brand-mark">PTV</span>
+      <span class="brand-sep">—</span>
+      <span class="brand-sub">CONFIGURATION</span>
+    </a>
+  </div>
+</header>
+
+{{ template "config_nav" . }}
+
+<div class="page-rule"></div>
+
+<main class="config-main">
+
+  {{ if .FlashError }}
+  <div class="alert alert-error">
+    <span class="alert-dot">●</span>{{ .FlashError }}
+  </div>
+  {{ end }}
+  {{ if .FlashSuccess }}
+  <div class="alert alert-ok">
+    <span class="alert-dot">●</span>{{ .FlashSuccess }}
+  </div>
+  {{ end }}
+
+  {{ if eq .DefsState 1 }}
+  <div class="alert alert-info">
+    <span class="alert-dot">◌</span>Updating indexer definitions from GitHub&hellip; catalog will populate when ready.
+  </div>
+  {{ else if eq .DefsState 3 }}
+  <div class="alert alert-warn">
+    <span class="alert-dot">⚠</span>Definitions pull failed — using stale local copy. {{ .DefsMsg }}
+  </div>
+  {{ else if eq .DefsState 4 }}
+  <div class="alert alert-error">
+    <span class="alert-dot">●</span>Indexer definitions unavailable — catalog blocked. {{ .DefsMsg }}
+  </div>
+  {{ end }}
+
+  {{ if .LoadError }}
+  <div class="alert alert-warn">
+    <span class="alert-dot">⚠</span>{{ .LoadError }}
+  </div>
+  {{ end }}
+
+  {{ if not (and .ProwlarrEnabled .ProwlarrSet) }}
+  <div class="prowlarr-hint">
+    <span class="hint-icon">⌥</span>
+    <span class="hint-text">
+      {{ if .ProwlarrSet }}
+        Prowlarr is configured but disabled. <a href="/config/prowlarr">Re-enable</a> to import existing indexers.
+      {{ else }}
+        You can <a href="/config/prowlarr">configure Prowlarr</a> to import already-configured indexers (not required).
+      {{ end }}
+    </span>
+  </div>
+  {{ end }}
+
+  <section class="config-section">
+    <h2 class="config-section-title">
+      ALL TRACKERS<span class="muted"> — {{ len .Rows }} total</span>
+    </h2>
+    <div class="section-rule"></div>
+
+    {{ if eq .DefsState 1 }}
+    <p class="config-empty">Loading catalog&hellip;</p>
+    {{ else if eq .DefsState 4 }}
+    <p class="config-empty">Catalog unavailable.</p>
+    {{ else }}
+
+    <div class="tracker-list">
+      {{ range .Rows }}
+      <details class="tracker-row {{ if .Configured }}is-configured{{ else }}is-available{{ end }}" data-lazy>
+        <summary class="tracker-row-summary">
+          {{ if .Configured }}
+            <span class="row-state row-state-configured">●</span>
+            <span class="row-name">{{ .Name }}</span>
+            <span class="row-url">{{ .Tracker.TrackerURL }}</span>
+            {{ if .Tracker.UserStats }}
+              <span class="row-tag row-tag-ok">✓ {{ .Tracker.UserStats.Username }}</span>
+            {{ else }}
+              <span class="row-tag row-tag-warn">○ not validated</span>
+            {{ end }}
+            {{ if gt .Tracker.ProwlarrID 0 }}
+              <span class="row-tag row-tag-prowlarr">PROWLARR #{{ .Tracker.ProwlarrID }}</span>
+            {{ end }}
+            {{ if gt .Tracker.AutobrrID 0 }}
+              <span class="row-tag row-tag-prowlarr">AUTOBRR #{{ .Tracker.AutobrrID }}</span>
+            {{ end }}
+          {{ else }}
+            <span class="row-state row-state-available">○</span>
+            <span class="row-name">{{ .Name }}</span>
+            <span class="row-tag row-tag-muted">{{ len .URLs }} URL{{ if ne (len .URLs) 1 }}s{{ end }}</span>
+          {{ end }}
+        </summary>
+
+        <template>
+        {{ if .Configured }}
+          <div class="tracker-row-body">
+            <div class="tracker-row-meta">
+              <span class="meta-label">URL</span>
+              <span class="meta-val">{{ .Tracker.TrackerURL }}</span>
+            </div>
+            <div class="tracker-row-meta">
+              <span class="meta-label">PROWLARR</span>
+              <span class="meta-val">
+                {{ if gt .Tracker.ProwlarrID 0 }}
+                  #{{ .Tracker.ProwlarrID }} — {{ if .Tracker.Enabled }}enabled{{ else }}disabled{{ end }}
+                {{ else }}
+                  not in Prowlarr
+                {{ end }}
+              </span>
+            </div>
+            <div class="tracker-row-meta">
+              <span class="meta-label">AUTOBRR</span>
+              <span class="meta-val">
+                {{ if gt .Tracker.AutobrrID 0 }}
+                  #{{ .Tracker.AutobrrID }} — {{ if .Tracker.AutobrrEnabled }}enabled{{ else }}disabled{{ end }}
+                {{ else }}
+                  not in Autobrr
+                {{ end }}
+              </span>
+            </div>
+
+            <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/update" class="config-form">
+              <div class="config-row">
+                <div class="field">
+                  <label class="field-label">URL</label>
+                  {{ $current := .Tracker.TrackerURL }}
+                  {{ if gt (len .URLs) 1 }}
+                    <select class="field-input field-select" name="url">
+                      {{ range .URLs }}
+                      <option value="{{ . }}" {{ if eq . $current }}selected{{ end }}>{{ . }}</option>
+                      {{ end }}
+                    </select>
+                  {{ else if eq (len .URLs) 1 }}
+                    <input type="hidden" name="url" value="{{ index .URLs 0 }}">
+                    <div class="field-authoritative">{{ index .URLs 0 }}</div>
+                  {{ else }}
+                    <input type="hidden" name="url" value="{{ $current }}">
+                    <div class="field-authoritative">{{ $current }}</div>
+                  {{ end }}
+                </div>
+                <div class="field">
+                  <label class="field-label">API KEY</label>
+                  <input class="field-input field-token" type="text" name="api_key"
+                    placeholder="set — enter new key to replace" autocomplete="off">
+                </div>
+                <div class="field field--action">
+                  <label class="field-label">&nbsp;</label>
+                  <button type="submit" class="btn-primary btn-sm">VALIDATE &amp; SAVE →</button>
+                </div>
+              </div>
+              <div class="catalog-force-row">
+                <button type="submit" name="override" value="true" class="btn-sm btn-ghost"
+                  onclick="return confirm('Save {{ .Name }} credentials without validating?\n\nStats will be cleared until validation succeeds.')">
+                  FORCE SAVE
+                </button>
+              </div>
+            </form>
+
+            <div class="tracker-row-actions">
+              {{ if and $.ProwlarrEnabled (gt .Tracker.ProwlarrID 0) }}
+                <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/prowlarr/toggle" class="inline-form">
+                  <button type="submit" class="btn-sm btn-ghost">{{ if .Tracker.Enabled }}DISABLE IN PROWLARR{{ else }}ENABLE IN PROWLARR{{ end }}</button>
+                </form>
+                <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/prowlarr/remove" class="inline-form">
+                  <button type="submit" class="btn-sm btn-danger">REMOVE FROM PROWLARR</button>
+                </form>
+              {{ else if $.ProwlarrEnabled }}
+                <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/prowlarr/add" class="inline-form">
+                  <button type="submit" class="btn-sm btn-ghost">ADD TO PROWLARR</button>
+                </form>
+              {{ end }}
+
+              {{ if and $.AutobrrEnabled (gt .Tracker.AutobrrID 0) }}
+                <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/autobrr/toggle" class="inline-form">
+                  <button type="submit" class="btn-sm btn-ghost">{{ if .Tracker.AutobrrEnabled }}DISABLE IN AUTOBRR{{ else }}ENABLE IN AUTOBRR{{ end }}</button>
+                </form>
+                <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/autobrr/remove" class="inline-form">
+                  <button type="submit" class="btn-sm btn-danger">REMOVE FROM AUTOBRR</button>
+                </form>
+              {{ else if $.AutobrrEnabled }}
+                <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/autobrr/add" class="inline-form">
+                  <button type="submit" class="btn-sm btn-ghost">ADD TO AUTOBRR</button>
+                </form>
+              {{ end }}
+
+              <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/delete" class="inline-form">
+                <button type="submit" class="btn-sm btn-danger"
+                  onclick="return confirm('Remove {{ .Name }} from dashboard?')">DELETE</button>
+              </form>
+            </div>
+          </div>
+        {{ else }}
+          <div class="tracker-row-body">
+            <form method="POST" action="/config/add" class="config-form">
+              <input type="hidden" name="schema_name" value="{{ .Name }}">
+              <input type="hidden" name="tracker_type" value="{{ .TypeID }}">
+              <div class="config-row">
+                <div class="field field-url-cell">
+                  <label class="field-label">TRACKER URL</label>
+                  {{ if eq (len .URLs) 1 }}
+                    <input type="hidden" name="url" value="{{ index .URLs 0 }}">
+                    <div class="field-authoritative">{{ index .URLs 0 }}</div>
+                  {{ else }}
+                    <select class="field-input field-select" name="url" required>
+                      <option value="" disabled selected>— select base URL —</option>
+                      {{ range .URLs }}
+                      <option value="{{ . }}">{{ . }}</option>
+                      {{ end }}
+                    </select>
+                  {{ end }}
+                </div>
+                <div class="field">
+                  <label class="field-label">API KEY</label>
+                  <input class="field-input field-token" type="text" name="api_key"
+                    placeholder="API key" autocomplete="off" required>
+                </div>
+                <div class="field field--action">
+                  <label class="field-label">&nbsp;</label>
+                  <button type="submit" class="btn-primary btn-sm">VALIDATE &amp; ADD →</button>
+                </div>
+              </div>
+              <div class="catalog-force-row">
+                <button type="submit" name="override" value="true" class="btn-sm btn-ghost"
+                  onclick="return confirm('Add {{ .Name }} without validating against /api/user?\n\nThe tracker will appear in your dashboard but stats will be empty until credentials are validated.')">
+                  FORCE ADD (skip validation)
+                </button>
+              </div>
+            </form>
+          </div>
+        {{ end }}
+        </template>
+      </details>
+      {{ end }}
+    </div>
+
+    {{ end }}{{/* defs available */}}
+  </section>
+
+</main>
+{{ end }}

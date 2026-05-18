@@ -1,0 +1,126 @@
+{{ define "content" }}
+<header class="site-header">
+  <div class="header-brand">
+    <a href="/" class="brand-link">
+      <span class="brand-mark">PTV</span>
+      <span class="brand-sep">—</span>
+      <span class="brand-sub">AUTOBRR</span>
+    </a>
+  </div>
+</header>
+
+{{ template "config_nav" . }}
+
+<div class="page-rule"></div>
+
+<main class="config-main">
+
+  {{ if .FlashError }}
+  <div class="alert alert-error">
+    <span class="alert-dot">●</span>{{ .FlashError }}
+  </div>
+  {{ end }}
+  {{ if .FlashSuccess }}
+  <div class="alert alert-ok">
+    <span class="alert-dot">●</span>{{ .FlashSuccess }}
+  </div>
+  {{ end }}
+
+  {{ if and .Config.AutobrrEnabled .Config.AutobrrAPIKey }}
+  {{ template "autobrr_nav" . }}
+  {{ end }}
+
+  <section class="config-section">
+
+    {{ if and .Config.AutobrrEnabled .Config.AutobrrAPIKey }}
+      <!-- Configured + enabled: pill -->
+      <details class="prowlarr-pill" data-lazy>
+        <summary class="prowlarr-pill-summary">
+          <span class="pill-check">✓</span>
+          <span class="pill-text">AUTOBRR CONFIGURED</span>
+          <span class="pill-url">{{ .Config.AutobrrURL }}</span>
+          <span class="pill-edit muted">click to edit</span>
+        </summary>
+        <template>
+        <div class="prowlarr-pill-body">
+          <form method="POST" action="/config/autobrr" class="config-form">
+            <div class="config-row">
+              <div class="field">
+                <label class="field-label">URL</label>
+                <input class="field-input" type="url" name="url"
+                  value="{{ .Config.AutobrrURL }}" autocomplete="off" required>
+              </div>
+              <div class="field">
+                <label class="field-label">API KEY</label>
+                <input class="field-input field-token" type="text" name="api_key"
+                  placeholder="set — enter new key to replace" autocomplete="off">
+              </div>
+              <div class="field field--action">
+                <label class="field-label">&nbsp;</label>
+                <button type="submit" class="btn-primary">SAVE →</button>
+              </div>
+            </div>
+          </form>
+          <form method="POST" action="/config/autobrr/disable" class="inline-form prowlarr-disable">
+            <button type="submit" class="btn-sm btn-ghost">DISABLE INTEGRATION</button>
+          </form>
+        </div>
+        </template>
+      </details>
+
+      <div class="prowlarr-quick-links">
+        <a href="/config/autobrr/import" class="link-action">→ IMPORT INDEXERS</a>
+      </div>
+
+    {{ else if and .Config.AutobrrEnabled (not .Config.AutobrrAPIKey) }}
+      <!-- Enabled but not saved -->
+      <h2 class="config-section-title">SETTINGS</h2>
+      <div class="section-rule"></div>
+      <p class="config-hint">Connect to your Autobrr instance.</p>
+      <form method="POST" action="/config/autobrr" class="config-form">
+        <div class="config-row">
+          <div class="field">
+            <label class="field-label">URL</label>
+            <input class="field-input" type="url" name="url"
+              value="{{ .Config.AutobrrURL }}" placeholder="http://autobrr:7474" autocomplete="off" required>
+          </div>
+          <div class="field">
+            <label class="field-label">API KEY</label>
+            <input class="field-input field-token" type="text" name="api_key"
+              placeholder="API key" autocomplete="off" required>
+          </div>
+          <div class="field field--action">
+            <label class="field-label">&nbsp;</label>
+            <button type="submit" class="btn-primary">SAVE →</button>
+          </div>
+        </div>
+      </form>
+      <form method="POST" action="/config/autobrr/disable" class="inline-form prowlarr-disable">
+        <button type="submit" class="btn-sm btn-ghost">CANCEL</button>
+      </form>
+
+    {{ else if .Config.AutobrrAPIKey }}
+      <!-- Disabled but creds preserved -->
+      <div class="prowlarr-disabled-pill">
+        <span class="pill-mute">○</span>
+        <span class="pill-text muted">AUTOBRR DISABLED</span>
+        <span class="pill-sub muted">credentials preserved</span>
+        <form method="POST" action="/config/autobrr/enable" class="inline-form">
+          <button type="submit" class="btn-sm btn-ghost">RE-ENABLE</button>
+        </form>
+      </div>
+
+    {{ else }}
+      <!-- Never configured -->
+      <h2 class="config-section-title">AUTOBRR INTEGRATION</h2>
+      <div class="section-rule"></div>
+      <p class="config-hint">Autobrr is optional. It lets you import already-configured indexers and push your tracker config out to Autobrr. Per-tracker IRC connection status is also surfaced on the dashboard cards.</p>
+      <form method="POST" action="/config/autobrr/enable" class="inline-form">
+        <button type="submit" class="btn-primary">ENABLE AUTOBRR INTEGRATION →</button>
+      </form>
+    {{ end }}
+
+  </section>
+
+</main>
+{{ end }}

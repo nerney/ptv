@@ -1,0 +1,77 @@
+{{ define "content" }}
+<header class="site-header">
+  <div class="header-brand">
+    <a href="/" class="brand-link">
+      <span class="brand-mark">PTV</span>
+      <span class="brand-sep">—</span>
+      <span class="brand-sub">NETWORK</span>
+    </a>
+  </div>
+</header>
+
+{{ template "config_nav" . }}
+
+<div class="page-rule"></div>
+
+<main class="config-main">
+
+  {{ if .FirstRun }}
+  <div class="alert alert-warn">
+    <span class="alert-dot">⚠</span>
+    Review your IP allowlist below and save it before continuing. Until
+    you save, the rest of the dashboard is locked behind this page —
+    this is a safety check so you can't be left in a wide-open default.
+  </div>
+  {{ end }}
+
+  {{ if .FlashError }}
+  <div class="alert alert-error"><span class="alert-dot">●</span>{{ .FlashError }}</div>
+  {{ end }}
+  {{ if .FlashSuccess }}
+  <div class="alert alert-ok"><span class="alert-dot">●</span>{{ .FlashSuccess }}</div>
+  {{ end }}
+
+  <section class="config-section">
+    <h2 class="config-section-title">IP ALLOWLIST</h2>
+    <div class="section-rule"></div>
+    <p class="config-hint">
+      Only traffic from these networks is allowed. <code>127.0.0.0/8</code> is
+      always allowed. Your current IP is <code>{{ .ClientIP }}</code>.
+      Add any subnet you want to permit (e.g. <code>192.168.0.0/16</code> for LAN access).
+    </p>
+
+    <form method="POST" action="/config/network" class="config-form">
+      <div class="field">
+        <label class="field-label">ALLOWED CIDRS</label>
+        <textarea class="field-input field-textarea" name="cidrs" rows="5"
+          placeholder="192.168.1.0/24&#10;10.0.0.5/32&#10;100.64.0.0/10">{{ range .NetACL.AllowedCIDRs }}{{ . }}&#10;{{ end }}</textarea>
+        <span class="field-hint">One per line. Plain IPs are treated as /32.</span>
+      </div>
+
+      <h3 class="config-subsection-title">REVERSE PROXY</h3>
+      <p class="config-hint">
+        If access goes through a reverse proxy (Caddy, Traefik, nginx…),
+        enter its IP or hostname here. Only requests originating from the
+        resolved IP(s) will have their <code>X-Forwarded-For</code> trusted.
+      </p>
+      <div class="field">
+        <label class="field-label">PROXY HOST</label>
+        <input class="field-input" type="text" name="proxy_host"
+          value="{{ .NetACL.ProxyHost }}" placeholder="caddy or 10.0.0.20">
+      </div>
+
+      <div class="config-form-actions">
+        <button type="submit" class="btn-primary">
+          {{ if .FirstRun }}SAVE &amp; CONTINUE →{{ else }}SAVE NETWORK CONFIG →{{ end }}
+        </button>
+      </div>
+    </form>
+
+    <p class="auth-warn">
+      Saving overwrites the live allowlist. If you lock yourself out, you can
+      reach the container from <code>localhost</code> via <code>docker exec</code>.
+    </p>
+  </section>
+
+</main>
+{{ end }}

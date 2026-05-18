@@ -3,36 +3,33 @@ package handlers
 import (
 	"net/http"
 	"time"
-
-	"github.com/nerney/pt-dashboard/internal/config"
 )
 
+// dashboard renders the home page — the tracker card grid plus the
+// header (REFRESH, CONFIG, LOGOUT). When the user has zero trackers
+// configured we show an empty state with a CTA, rather than redirecting
+// to /config: redirects-on-empty mask the underlying state and surprise
+// the user.
 type dashboardData struct {
-	Trackers []*config.TrackerEntry
-	LastSync *time.Time
-	Date     string
+	Trackers     []*trackerCardView
+	LastSync     *time.Time // freshest sync across all trackers; nil if none
+	Date         string
+	Sort         string // current sort key — "", "ratio", "uploaded", "active"
+	FlashError   string
+	FlashSuccess string
 }
 
 func (h *Handler) dashboard(w http.ResponseWriter, r *http.Request) {
 	cfg := h.store.Get()
-	if !cfg.SetupComplete {
-		http.Redirect(w, r, "/wizard/1", http.StatusFound)
-		return
-	}
-
-	var lastSync *time.Time
-	for _, t := range cfg.Trackers {
-		if t.LastSync != nil {
-			if lastSync == nil || t.LastSync.After(*lastSync) {
-				ts := *t.LastSync
-				lastSync = &ts
-			}
-		}
-	}
-
+	sortKey := r.URL.Query().Get("sort")
+	views := h.buildTrackerViews(cfg)
+	sortTrackerViews(views, sortKey)
 	h.render(w, "dashboard", dashboardData{
-		Trackers: cfg.Trackers,
-		LastSync: lastSync,
-		Date:     time.Now().Format("02 Jan 2006"),
+		Trackers:     views,
+		LastSync:     latestSync(cfg.Trackers),
+		Date:         time.Now().Format("02 Jan 2006"),
+		Sort:         sortKey,
+		FlashError:   r.URL.Query().Get("err"),
+		FlashSuccess: r.URL.Query().Get("ok"),
 	})
 }

@@ -1,0 +1,136 @@
+{{ define "content" }}
+<header class="site-header">
+  <div class="header-brand">
+    <a href="/" class="brand-link">
+      <span class="brand-mark">PTV</span>
+      <span class="brand-sep">—</span>
+      <span class="brand-sub">PROWLARR / SYNC</span>
+    </a>
+  </div>
+</header>
+
+{{ template "config_nav" . }}
+{{ template "prowlarr_nav" . }}
+
+<div class="page-rule"></div>
+
+<main class="config-main">
+
+  {{ if .FlashError }}
+  <div class="alert alert-error">
+    <span class="alert-dot">●</span>{{ .FlashError }}
+  </div>
+  {{ end }}
+  {{ if .FlashSuccess }}
+  <div class="alert alert-ok">
+    <span class="alert-dot">●</span>{{ .FlashSuccess }}
+  </div>
+  {{ end }}
+  {{ if .LoadError }}
+  <div class="alert alert-warn">
+    <span class="alert-dot">⚠</span>{{ .LoadError }}
+  </div>
+  {{ end }}
+
+  {{ if not .ProwlarrEnabled }}
+  <section class="config-section">
+    <h2 class="config-section-title">PROWLARR REQUIRED</h2>
+    <div class="section-rule"></div>
+    <p class="config-hint">Prowlarr is not enabled.</p>
+    <p class="config-hint"><a href="/config/prowlarr" class="link-action">→ CONFIGURE PROWLARR</a></p>
+  </section>
+  {{ else }}
+
+  <p class="config-hint">Push your tracker configuration into Prowlarr. Synced rows match Prowlarr's current state. New rows aren't in Prowlarr yet. Drift rows exist in both but differ — pushing overrides Prowlarr with this dashboard's values (uses <code>forceSave</code>).</p>
+
+  <form method="POST" action="/config/prowlarr/sync" class="sync-form">
+
+    {{ if .New }}
+    <section class="config-section">
+      <h2 class="config-section-title">
+        <span class="step-num">+</span> NEW IN PROWLARR<span class="muted"> — {{ len .New }}</span>
+      </h2>
+      <div class="section-rule"></div>
+      <p class="config-hint">These trackers exist in the dashboard but aren't in Prowlarr. Sync will create them.</p>
+      <div class="sync-list">
+        {{ range .New }}
+        <label class="sync-row sync-row-new">
+          <input type="checkbox" name="tracker_idx" value="{{ .TrackerIdx }}" class="sync-check sync-check-row" checked>
+          <span class="sync-row-tag">NEW</span>
+          <span class="sync-row-name">{{ .Name }}</span>
+          <span class="sync-row-url">{{ .TrackerURL }}</span>
+        </label>
+        {{ end }}
+      </div>
+    </section>
+    {{ end }}
+
+    {{ if .Drift }}
+    <section class="config-section">
+      <h2 class="config-section-title">
+        <span class="step-num">!</span> CONFIG DRIFT<span class="muted"> — {{ len .Drift }}</span>
+      </h2>
+      <div class="section-rule"></div>
+      <p class="config-hint">These trackers exist in both, but the dashboard's URL or API key differs from Prowlarr's. Sync overwrites Prowlarr.</p>
+      <div class="sync-list">
+        {{ range .Drift }}
+        <label class="sync-row sync-row-drift">
+          <input type="checkbox" name="tracker_idx" value="{{ .TrackerIdx }}" class="sync-check sync-check-row" checked>
+          <span class="sync-row-tag sync-row-tag-drift">DRIFT</span>
+          <span class="sync-row-name">{{ .Name }}</span>
+          <div class="sync-row-compare">
+            <div class="cmp-side">
+              <span class="cmp-label">DASHBOARD</span>
+              <span class="cmp-val">{{ .TrackerURL }}</span>
+            </div>
+            <span class="cmp-arrow">→</span>
+            <div class="cmp-side">
+              <span class="cmp-label">PROWLARR</span>
+              <span class="cmp-val">{{ .ProwlarrURL }}</span>
+            </div>
+          </div>
+        </label>
+        {{ end }}
+      </div>
+    </section>
+    {{ end }}
+
+    {{ if or .New .Drift }}
+    <div class="import-submit-row">
+      <button type="submit" class="btn-primary">PUSH SELECTED →</button>
+    </div>
+    {{ end }}
+  </form>
+
+  {{ if .Synced }}
+  <section class="config-section">
+    <h2 class="config-section-title">
+      <span class="step-num">✓</span> SYNCED<span class="muted"> — {{ len .Synced }}</span>
+    </h2>
+    <div class="section-rule"></div>
+    <p class="config-hint">Dashboard and Prowlarr agree. No action needed.</p>
+    <div class="sync-list">
+      {{ range .Synced }}
+      <div class="sync-row sync-row-synced">
+        <span class="sync-row-tag sync-row-tag-ok">✓</span>
+        <span class="sync-row-name">{{ .Name }}</span>
+        <span class="sync-row-url">{{ .TrackerURL }}</span>
+        <span class="muted">#{{ .ProwlarrID }}</span>
+      </div>
+      {{ end }}
+    </div>
+  </section>
+  {{ end }}
+
+  {{ if not (or .New .Drift .Synced) }}
+  <section class="config-section">
+    <h2 class="config-section-title">NOTHING TO SYNC</h2>
+    <div class="section-rule"></div>
+    <p class="config-empty">No managed trackers yet. <a href="/config/trackers">Configure trackers</a> first.</p>
+  </section>
+  {{ end }}
+
+  {{ end }}{{/* ProwlarrEnabled */}}
+
+</main>
+{{ end }}

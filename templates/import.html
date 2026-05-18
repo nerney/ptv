@@ -1,0 +1,99 @@
+{{ define "content" }}
+<header class="site-header">
+  <div class="header-brand">
+    <a href="/" class="brand-link">
+      <span class="brand-mark">PTV</span>
+      <span class="brand-sep">—</span>
+      <span class="brand-sub">PROWLARR / IMPORT</span>
+    </a>
+  </div>
+</header>
+
+{{ template "config_nav" . }}
+{{ template "prowlarr_nav" . }}
+
+<div class="page-rule"></div>
+
+<main class="config-main">
+
+  {{ if .FlashError }}
+  <div class="alert alert-error">
+    <span class="alert-dot">●</span>{{ .FlashError }}
+  </div>
+  {{ end }}
+  {{ if .FlashSuccess }}
+  <div class="alert alert-ok">
+    <span class="alert-dot">●</span>{{ .FlashSuccess }}
+  </div>
+  {{ end }}
+  {{ if .LoadError }}
+  <div class="alert alert-warn">
+    <span class="alert-dot">⚠</span>{{ .LoadError }}
+  </div>
+  {{ end }}
+
+  {{ if not .ProwlarrEnabled }}
+  <section class="config-section">
+    <h2 class="config-section-title">PROWLARR REQUIRED</h2>
+    <div class="section-rule"></div>
+    <p class="config-hint">Prowlarr is not enabled.</p>
+    <p class="config-hint"><a href="/config/prowlarr" class="link-action">→ CONFIGURE PROWLARR</a></p>
+  </section>
+  {{ else }}
+
+  <section class="config-section">
+    <h2 class="config-section-title">
+      AVAILABLE TO IMPORT<span class="muted"> — {{ len .Importable }}</span>
+    </h2>
+    <div class="section-rule"></div>
+
+    {{ if .Importable }}
+    <p class="config-hint">Select trackers to import. Each is validated against UNIT3D <code>/api/user</code>; any that fail are still added (with empty stats) and reported on the home page.</p>
+
+    <form method="POST" action="/config/prowlarr/import" class="import-form" id="import-form">
+      <label class="import-row import-row-check import-row-all">
+        <input type="checkbox" id="import-check-all" class="import-check">
+        <span class="tracker-select-name">SELECT ALL</span>
+        <span class="muted">({{ len .Importable }})</span>
+      </label>
+      <div class="import-list">
+        {{ range .Importable }}
+        <label class="import-row import-row-check">
+          <input type="checkbox" name="prowlarr_id" value="{{ .ProwlarrID }}" class="import-check import-check-row">
+          <span class="tracker-select-name">{{ .Name }}</span>
+          <span class="tracker-select-url">{{ .TrackerURL }}</span>
+          {{ if .HasKey }}<span class="key-pill key-on">● KEY</span>{{ else }}<span class="key-pill key-off">○ NO KEY</span>{{ end }}
+        </label>
+        {{ end }}
+      </div>
+      <div class="import-submit-row">
+        <button type="submit" class="btn-primary">IMPORT SELECTED →</button>
+      </div>
+    </form>
+    <script>
+    (function () {
+      var all = document.getElementById("import-check-all");
+      if (!all) return;
+      var rows = document.querySelectorAll(".import-check-row");
+      function syncAll() {
+        var checked = 0;
+        rows.forEach(function (r) { if (r.checked) checked++; });
+        all.checked = checked === rows.length && rows.length > 0;
+        all.indeterminate = checked > 0 && checked < rows.length;
+      }
+      all.addEventListener("change", function () {
+        rows.forEach(function (r) { r.checked = all.checked; });
+        all.indeterminate = false;
+      });
+      rows.forEach(function (r) { r.addEventListener("change", syncAll); });
+      syncAll();
+    })();
+    </script>
+    {{ else }}
+    <p class="config-empty">No additional UNIT3D indexers found in Prowlarr.</p>
+    {{ end }}
+  </section>
+  {{ end }}
+
+</main>
+{{ end }}

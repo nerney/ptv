@@ -1,16 +1,39 @@
 {{ define "tracker_card" }}
-<article class="tracker-card">
+<article class="tracker-card{{ if isStale .LastSync }} card-stale{{ end }}"
+  {{ if .ThemeColor }}style="background: color-mix(in srgb, {{ .ThemeColor }} 8%, var(--bg));"{{ end }}>
   <div class="card-head">
-    <h2 class="tracker-name">{{ .Name }}</h2>
-    {{ if gt .ProwlarrID 0 }}
-      {{ if .Enabled }}
-        <span class="prowlarr-badge prowlarr-on" title="In Prowlarr — enabled">● PROWLARR</span>
+    <h2 class="tracker-name">
+      {{ if .FaviconDataURI }}<img class="tracker-favicon" src="{{ .FaviconDataURI }}" alt="" loading="lazy">{{ end }}
+      {{ .Name }}
+    </h2>
+    <div class="card-badges">
+      {{ if gt .ProwlarrID 0 }}
+        {{ if .Enabled }}
+          <span class="prowlarr-badge prowlarr-on" title="In Prowlarr — enabled">● PROWLARR</span>
+        {{ else }}
+          <span class="prowlarr-badge prowlarr-off" title="In Prowlarr — disabled">○ PROWLARR</span>
+        {{ end }}
       {{ else }}
-        <span class="prowlarr-badge prowlarr-off" title="In Prowlarr — disabled">○ PROWLARR</span>
+        <span class="prowlarr-badge prowlarr-none" title="Not in Prowlarr">— PROWLARR</span>
       {{ end }}
-    {{ else }}
-      <span class="prowlarr-badge prowlarr-none" title="Not in Prowlarr">— PROWLARR</span>
-    {{ end }}
+
+      {{ if gt .AutobrrID 0 }}
+        {{ if .AutobrrEnabled }}
+          <span class="prowlarr-badge prowlarr-on" title="In Autobrr — enabled">● AUTOBRR</span>
+        {{ else }}
+          <span class="prowlarr-badge prowlarr-off" title="In Autobrr — disabled">○ AUTOBRR</span>
+        {{ end }}
+        {{ if eq .AutobrrIRCStatus "connected" }}
+          <span class="irc-dot irc-connected" title="IRC connected">●</span>
+        {{ else if eq .AutobrrIRCStatus "disconnected" }}
+          <span class="irc-dot irc-disconnected" title="IRC disconnected">●</span>
+        {{ else if eq .AutobrrIRCStatus "unknown" }}
+          <span class="irc-dot irc-unknown" title="IRC status unknown — no matching network in Autobrr">?</span>
+        {{ end }}
+      {{ else }}
+        <span class="prowlarr-badge prowlarr-none" title="Not in Autobrr">— AUTOBRR</span>
+      {{ end }}
+    </div>
   </div>
 
   {{ if eq .APIKey "" }}
@@ -33,7 +56,7 @@
     </div>
   {{ else }}
     <div class="ratio-hero">
-      <span class="ratio-num {{ ratioClass .UserStats.Ratio }}">{{ formatRatio .UserStats.Ratio }}</span>
+      <span class="ratio-num {{ ratioClassStr .UserStats.Ratio }}">{{ .UserStats.Ratio }}</span>
       <div class="ratio-meta">
         <span class="ratio-x">×</span>
         <span class="ratio-label">RATIO</span>
@@ -43,22 +66,22 @@
     <div class="stats-row">
       <div class="stat">
         <span class="stat-label">UPLOAD</span>
-        <span class="stat-val">{{ formatBytes .UserStats.Upload }}</span>
+        <span class="stat-val">{{ .UserStats.Uploaded }}</span>
       </div>
       <div class="stat">
         <span class="stat-label">DOWNLOAD</span>
-        <span class="stat-val">{{ formatBytes .UserStats.Download }}</span>
+        <span class="stat-val">{{ .UserStats.Downloaded }}</span>
       </div>
       <div class="stat">
         <span class="stat-label">BUFFER</span>
-        <span class="stat-val {{ if gt .UserStats.Buffer 0 }}val-pos{{ end }}">{{ formatBytes .UserStats.Buffer }}</span>
+        <span class="stat-val">{{ .UserStats.Buffer }}</span>
       </div>
     </div>
 
     <div class="stats-row">
       <div class="stat">
         <span class="stat-label">BONUS</span>
-        <span class="stat-val">{{ formatBonus .UserStats.Bonus }}</span>
+        <span class="stat-val">{{ .UserStats.SeedBonus }}</span>
       </div>
       <div class="stat">
         <span class="stat-label">SEEDING</span>
@@ -71,7 +94,7 @@
     </div>
 
     <div class="card-foot">
-      {{ if .UserStats.Class }}<span class="user-class">{{ .UserStats.Class }}</span>{{ end }}
+      {{ if .UserStats.Group }}<span class="user-class">{{ .UserStats.Group }}</span>{{ end }}
       {{ if .UserStats.Username }}<span class="username">· {{ .UserStats.Username }}</span>{{ end }}
       {{ if .LastSync }}<span class="last-sync">{{ staleAge .LastSync }}</span>{{ end }}
     </div>

@@ -1,0 +1,31 @@
+{{ define "content" }}
+<header class="site-header auth-header">
+  <div class="header-brand">
+    <span class="brand-mark">PTV</span>
+    <span class="brand-sep">—</span>
+    <span class="brand-sub">LOGIN</span>
+  </div>
+</header>
+
+<div class="page-rule"></div>
+
+<main class="auth-main">
+  <section class="auth-card">
+    <h1 class="auth-title">LOG IN</h1>
+
+    {{ if .Error }}
+    <div class="alert alert-error">
+      <span class="alert-dot">●</span>{{ .Error }}
+    </div>
+    {{ end }}
+
+    <form method="POST" action="/login" class="auth-form" autocomplete="off">
+      <div class="field">
+        <label class="field-label">PASSWORD</label>
+        <input class="field-input" type="password" name="password" required autofocus>
+      </div>
+      <button type="submit" class="btn-primary auth-submit">UNLOCK →</button>
+    </form>
+  </section>
+</main>
+{{ end }}

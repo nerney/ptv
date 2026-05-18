@@ -4,12 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex,nofollow">
-  <title>UNIT3D Dashboard</title>
+  <title>Private Tracker Vault</title>
+  <script>
+    // Stamp <html data-theme> from localStorage BEFORE the stylesheet
+    // parses, so the page never renders in the wrong palette.
+    (function () {
+      try {
+        var t = localStorage.getItem("theme");
+        if (t === "light" || t === "dark") {
+          document.documentElement.setAttribute("data-theme", t);
+        }
+      } catch (e) { /* private mode / storage disabled — fine */ }
+    })();
+  </script>
   <link rel="stylesheet" href="/static/style.css">
   <script src="https://unpkg.com/htmx.org@1.9.12" crossorigin="anonymous" defer></script>
+  <script src="/static/details-lazy.js" defer></script>
+  <script src="/static/theme-toggle.js" defer></script>
 </head>
 <body>
 {{ template "content" . }}
+<button type="button" class="theme-toggle" aria-label="Toggle light/dark theme" title="Toggle light/dark theme"></button>
 </body>
 </html>
 {{ end }}

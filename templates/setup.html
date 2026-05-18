@@ -1,0 +1,53 @@
+{{ define "content" }}
+<header class="site-header auth-header">
+  <div class="header-brand">
+    <span class="brand-mark">PTV</span>
+    <span class="brand-sep">—</span>
+    <span class="brand-sub">FIRST-RUN SETUP</span>
+  </div>
+</header>
+
+<div class="page-rule"></div>
+
+<main class="auth-main">
+  <section class="auth-card">
+    <h1 class="auth-title">CREATE ACCOUNT</h1>
+    <p class="auth-hint">
+      You have <strong>5 minutes</strong> from container boot to complete setup.
+      The IP you're connecting from will become your initial allowlist entry —
+      you can broaden it after login.
+    </p>
+    <div class="auth-ipnote">
+      <span class="meta-label">YOUR IP</span>
+      <span class="meta-val">{{ .ClientIP }}</span>
+    </div>
+
+    {{ if .Error }}
+    <div class="alert alert-error">
+      <span class="alert-dot">●</span>{{ .Error }}
+    </div>
+    {{ end }}
+
+    <form method="POST" action="/setup" class="auth-form" autocomplete="off">
+      <div class="field">
+        <label class="field-label">USERNAME</label>
+        <input class="field-input" type="text" name="username" required autofocus>
+      </div>
+      <div class="field">
+        <label class="field-label">PASSWORD</label>
+        <input class="field-input" type="password" name="password" required minlength="8">
+      </div>
+      <div class="field">
+        <label class="field-label">CONFIRM PASSWORD</label>
+        <input class="field-input" type="password" name="confirm" required minlength="8">
+      </div>
+      <button type="submit" class="btn-primary auth-submit">CREATE &amp; LOG IN →</button>
+    </form>
+
+    <p class="auth-warn">
+      Choose a strong password. Forgetting it means the encrypted config
+      cannot be recovered — there is no reset.
+    </p>
+  </section>
+</main>
+{{ end }}

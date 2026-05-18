@@ -1,3 +1,9 @@
+// Package prowlarr is a minimal HTTP client for the Prowlarr REST API.
+//
+// PTV uses Prowlarr to import already-configured indexers and to push/update
+// managed trackers (credentials, enable/disable state) into Prowlarr. Only
+// the indexer resource is touched — no tags, download clients, or other
+// Prowlarr features.
 package prowlarr
 
 import (
@@ -7,132 +13,175 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/nerney/ptv/internal/logger"
 )
 
+// Client speaks the Prowlarr v1 REST API. Auth is via the X-Api-Key header.
 type Client struct {
 	baseURL string
 	apiKey  string
 	http    *http.Client
+	log     *logger.Logger
 }
 
-func New(baseURL, apiKey string) *Client {
+func New(baseURL, apiKey string, log *logger.Logger) *Client {
 	return &Client{
 		baseURL: strings.TrimRight(baseURL, "/"),
 		apiKey:  apiKey,
 		http:    &http.Client{Timeout: 20 * time.Second},
+		log:     log,
 	}
 }
 
 type IndexerSchema struct {
-	ID                 int            `json:"id"`
-	Name               string         `json:"name"`
-	Implementation     string         `json:"implementation"`
-	ImplementationName string         `json:"implementationName"`
-	ConfigContract     string         `json:"configContract"`
-	Tags               []string       `json:"tags"`
-	Fields             []SchemaField  `json:"fields"`
+	ID                 int           `json:"id"`
+	Name               string        `json:"name"`
+	Description        string        `json:"description,omitempty"`
+	Implementation     string        `json:"implementation"`
+	ImplementationName string        `json:"implementationName"`
+	ConfigContract     string        `json:"configContract"`
+	InfoLink           string        `json:"infoLink,omitempty"`
+	Tags               []int         `json:"tags"`
+	Fields             []SchemaField `json:"fields"`
 }
 
 type SchemaField struct {
+	Name          string         `json:"name"`
+	Label         string         `json:"label"`
+	HelpText      string         `json:"helpText,omitempty"`
+	HelpLink      string         `json:"helpLink,omitempty"`
+	Placeholder   string         `json:"placeholder,omitempty"`
+	Type          string         `json:"type"`
+	Value         interface{}    `json:"value,omitempty"`
+	SelectOptions []SelectOption `json:"selectOptions,omitempty"`
+	Advanced      bool           `json:"advanced,omitempty"`
+}
+
+type SelectOption struct {
 	Name  string      `json:"name"`
-	Label string      `json:"label"`
-	Type  string      `json:"type"`
-	Value interface{} `json:"value,omitempty"`
+	Value interface{} `json:"value"`
+	Hint  string      `json:"hint,omitempty"`
 }
 
 type Indexer struct {
-	ID                 int            `json:"id"`
-	Name               string         `json:"name"`
-	Enable             bool           `json:"enable"`
-	Implementation     string         `json:"implementation"`
-	ImplementationName string         `json:"implementationName"`
-	ConfigContract     string         `json:"configContract"`
-	Fields             []SchemaField  `json:"fields"`
-	Tags               []int          `json:"tags"`
+	ID                 int           `json:"id"`
+	Name               string        `json:"name"`
+	Enable             bool          `json:"enable"`
+	Implementation     string        `json:"implementation"`
+	ImplementationName string        `json:"implementationName"`
+	ConfigContract     string        `json:"configContract"`
+	Fields             []SchemaField `json:"fields"`
+	Tags               []int         `json:"tags"`
 }
 
-func (c *Client) do(method, path string, body io.Reader) (*http.Response, error) {
+func (c *Client) do(method, path string, body io.Reader) (*http.Response, []byte, error) {
 	req, err := http.NewRequest(method, c.baseURL+path, body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	req.Header.Set("X-Api-Key", c.apiKey)
+	req.Header.Set("Accept", "application/json")
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	return c.http.Do(req)
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		if c.log != nil {
+			c.log.HTTP(logger.ERROR, "PROWLARR", method, c.baseURL+path, 0, 0)
+		}
+		return nil, nil, err
+	}
+
+	respBody, readErr := io.ReadAll(resp.Body)
+	resp.Body.Close()
+
+	lvl := logger.INFO
+	if resp.StatusCode >= 400 {
+		lvl = logger.ERROR
+	}
+	if c.log != nil {
+		c.log.HTTP(lvl, "PROWLARR", method, c.baseURL+path, resp.StatusCode, len(respBody))
+	}
+
+	if readErr != nil {
+		return resp, respBody, readErr
+	}
+	return resp, respBody, nil
 }
 
 func (c *Client) Ping() error {
-	resp, err := c.do("GET", "/api/v1/system/status", nil)
+	resp, _, err := c.do("GET", "/api/v1/system/status", nil)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("prowlarr returned HTTP %d", resp.StatusCode)
 	}
 	return nil
 }
 
-func (c *Client) GetUnit3dSchemas() ([]IndexerSchema, error) {
-	resp, err := c.do("GET", "/api/v1/indexer/schema", nil)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+// NormalizeURL lowercases and strips trailing slashes for set membership checks.
+func NormalizeURL(u string) string {
+	u = strings.ToLower(strings.TrimSpace(u))
+	u = strings.TrimRight(u, "/")
+	return u
+}
 
-	body, err := io.ReadAll(resp.Body)
+// ExtractCreds pulls baseUrl/sitelink and apikey-like values out of an
+// indexer's stored field values.
+func ExtractCreds(fields []SchemaField) (url, apiKey string) {
+	for _, f := range fields {
+		if f.Value == nil {
+			continue
+		}
+		s, ok := f.Value.(string)
+		if !ok || s == "" {
+			continue
+		}
+		switch strings.ToLower(f.Name) {
+		case "baseurl", "sitelink":
+			url = s
+		case "apikey", "api_key", "apitoken":
+			apiKey = s
+		}
+	}
+	return
+}
+
+func (c *Client) GetAllSchemas() ([]IndexerSchema, error) {
+	resp, body, err := c.do("GET", "/api/v1/indexer/schema", nil)
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("prowlarr returned HTTP %d", resp.StatusCode)
 	}
-
 	var schemas []IndexerSchema
 	if err := json.Unmarshal(body, &schemas); err != nil {
 		return nil, fmt.Errorf("parse: %w", err)
 	}
-
-	var out []IndexerSchema
-	for _, s := range schemas {
-		if isUnit3d(s) {
-			out = append(out, s)
-		}
-	}
-	return out, nil
-}
-
-func isUnit3d(s IndexerSchema) bool {
-	impl := strings.ToLower(s.ImplementationName)
-	if strings.Contains(impl, "unit3d") {
-		return true
-	}
-	for _, tag := range s.Tags {
-		if strings.EqualFold(tag, "unit3d") || strings.EqualFold(tag, "unit3d-community-edition") {
-			return true
-		}
-	}
-	return false
+	return schemas, nil
 }
 
 func (c *Client) GetIndexers() ([]Indexer, error) {
-	resp, err := c.do("GET", "/api/v1/indexer", nil)
+	resp, body, err := c.do("GET", "/api/v1/indexer", nil)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("prowlarr returned HTTP %d", resp.StatusCode)
+	}
 	var out []Indexer
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return nil, err
+	if err := json.Unmarshal(body, &out); err != nil {
+		return nil, fmt.Errorf("parse: %w", err)
 	}
 	return out, nil
 }
 
 func (c *Client) SchemaByName(name string) (*IndexerSchema, error) {
-	schemas, err := c.GetUnit3dSchemas()
+	schemas, err := c.GetAllSchemas()
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +195,6 @@ func (c *Client) SchemaByName(name string) (*IndexerSchema, error) {
 
 func (c *Client) AddIndexer(schema IndexerSchema, trackerURL, apiKey string) (*Indexer, error) {
 	fields := populateFields(schema.Fields, trackerURL, apiKey)
-
 	payload := map[string]interface{}{
 		"name":               schema.Name,
 		"enable":             true,
@@ -156,23 +204,17 @@ func (c *Client) AddIndexer(schema IndexerSchema, trackerURL, apiKey string) (*I
 		"fields":             fields,
 		"tags":               []int{},
 	}
-
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
 	}
-
-	resp, err := c.do("POST", "/api/v1/indexer", strings.NewReader(string(data)))
+	resp, body, err := c.do("POST", "/api/v1/indexer?forceSave=true", strings.NewReader(string(data)))
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != 201 {
+	if resp.StatusCode != http.StatusCreated {
 		return nil, fmt.Errorf("prowlarr HTTP %d: %s", resp.StatusCode, string(body))
 	}
-
 	var idx Indexer
 	if err := json.Unmarshal(body, &idx); err != nil {
 		return nil, err
@@ -186,42 +228,62 @@ func (c *Client) SetEnabled(indexer Indexer, enabled bool) error {
 	if err != nil {
 		return err
 	}
-
-	resp, err := c.do("PUT", fmt.Sprintf("/api/v1/indexer/%d", indexer.ID), strings.NewReader(string(data)))
+	resp, body, err := c.do("PUT", fmt.Sprintf("/api/v1/indexer/%d", indexer.ID), strings.NewReader(string(data)))
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 202 && resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusAccepted && resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("prowlarr HTTP %d: %s", resp.StatusCode, string(body))
 	}
 	return nil
 }
 
+// UpdateIndexer pushes our tracker URL + API key into an existing Prowlarr
+// indexer, using forceSave=true so Prowlarr accepts the changes without
+// re-testing the connection (the dashboard already validated against the tracker).
+func (c *Client) UpdateIndexer(indexer Indexer, trackerURL, apiKey string) (*Indexer, error) {
+	indexer.Fields = populateFields(indexer.Fields, trackerURL, apiKey)
+	data, err := json.Marshal(indexer)
+	if err != nil {
+		return nil, err
+	}
+	resp, body, err := c.do("PUT",
+		fmt.Sprintf("/api/v1/indexer/%d?forceSave=true", indexer.ID),
+		strings.NewReader(string(data)))
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusAccepted && resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("prowlarr HTTP %d: %s", resp.StatusCode, string(body))
+	}
+	var updated Indexer
+	if err := json.Unmarshal(body, &updated); err != nil {
+		return nil, err
+	}
+	return &updated, nil
+}
+
 func (c *Client) DeleteIndexer(id int) error {
-	resp, err := c.do("DELETE", fmt.Sprintf("/api/v1/indexer/%d", id), nil)
+	resp, _, err := c.do("DELETE", fmt.Sprintf("/api/v1/indexer/%d", id), nil)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("prowlarr HTTP %d", resp.StatusCode)
 	}
 	return nil
 }
 
 func (c *Client) GetIndexer(id int) (*Indexer, error) {
-	resp, err := c.do("GET", fmt.Sprintf("/api/v1/indexer/%d", id), nil)
+	resp, body, err := c.do("GET", fmt.Sprintf("/api/v1/indexer/%d", id), nil)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("prowlarr HTTP %d", resp.StatusCode)
+	}
 	var idx Indexer
-	if err := json.NewDecoder(resp.Body).Decode(&idx); err != nil {
+	if err := json.Unmarshal(body, &idx); err != nil {
 		return nil, err
 	}
 	return &idx, nil
@@ -230,7 +292,6 @@ func (c *Client) GetIndexer(id int) (*Indexer, error) {
 func populateFields(fields []SchemaField, trackerURL, apiKey string) []SchemaField {
 	out := make([]SchemaField, len(fields))
 	copy(out, fields)
-
 	for i, f := range out {
 		low := strings.ToLower(f.Name)
 		switch {

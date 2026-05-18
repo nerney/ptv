@@ -1,5 +1,5 @@
 services:
-  pt-dashboard:
+  ptv:
     build: .
     ports:
       - "8008:8008"

@@ -3,19 +3,31 @@ package main
 import (
 	"context"
 	"embed"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/nerney/pt-dashboard/internal/config"
-	"github.com/nerney/pt-dashboard/internal/handlers"
+	"github.com/nerney/ptv/internal/config"
+	"github.com/nerney/ptv/internal/defs"
+	"github.com/nerney/ptv/internal/handlers"
+	"github.com/nerney/ptv/internal/logger"
+	_ "github.com/nerney/ptv/internal/unit3d" // registers UNIT3D TrackerType
 )
 
 //go:embed templates static
 var assets embed.FS
+
+// banner is the ASCII-art PTV mark printed at startup. Kept as a raw
+// string literal so the box-drawing glyphs survive any indent rewriting.
+const banner = `
+██████╗ ████████╗██╗   ██╗
+██╔══██╗╚══██╔══╝██║   ██║
+██████╔╝   ██║   ╚██╗ ██╔╝
+██╔═══╝    ██║    ╚████╔╝
+╚═╝        ╚═╝     ╚═══╝
+`
 
 func main() {
 	configDir := os.Getenv("CONFIG_DIR")
@@ -23,12 +35,19 @@ func main() {
 		configDir = "/config"
 	}
 
+	log := logger.New()
+	log.Banner(banner)
+
 	store, err := config.NewStore(configDir)
 	if err != nil {
-		log.Fatalf("config store: %v", err)
+		log.Err("SYSTEM", "config store: "+err.Error())
+		os.Exit(1)
 	}
 
-	router := handlers.NewRouter(store, assets)
+	syncer := defs.New(configDir, log)
+	syncer.Start(context.Background())
+
+	router := handlers.NewRouter(store, syncer, assets)
 
 	srv := &http.Server{
 		Addr:         "[::]:8008",
@@ -39,9 +58,10 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("pt-dashboard listening on %s", srv.Addr)
+		log.Info("SYSTEM", "ptv listening on "+srv.Addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server: %v", err)
+			log.Err("SYSTEM", "server: "+err.Error())
+			os.Exit(1)
 		}
 	}()
 
@@ -52,6 +72,6 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Printf("shutdown: %v", err)
+		log.Err("SYSTEM", "shutdown: "+err.Error())
 	}
 }
