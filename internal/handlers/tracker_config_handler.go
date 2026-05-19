@@ -52,8 +52,11 @@ func (h *Handler) trackerConfigPage(w http.ResponseWriter, r *http.Request) {
 		flash(w, r, "/", "", "invalid tracker index")
 		return
 	}
-	data := h.trackerConfigData(idx, cfg.Trackers[idx], cfg, r, "overview")
-	h.render(w, "tracker_config", data)
+	data := trackerPTVConfigData{
+		trackerConfigData: h.trackerConfigData(idx, cfg.Trackers[idx], cfg, r, "ptv"),
+		URLs:              h.trackerDefinitionURLs(cfg.Trackers[idx].DefinitionName),
+	}
+	h.render(w, "tracker_ptv_config", data)
 }
 
 func (h *Handler) trackerPTVConfigPage(w http.ResponseWriter, r *http.Request) {
@@ -171,7 +174,7 @@ func trackerConfigPath(idx int) string {
 }
 
 func trackerPTVConfigPath(idx int) string {
-	return trackerConfigPath(idx) + "/ptv"
+	return trackerConfigPath(idx)
 }
 
 func trackerProwlarrDiffPath(idx int) string {

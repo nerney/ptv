@@ -47,16 +47,6 @@
 <div class="page-bar">
   <span class="section-label">TRACKERS<span class="section-count"> — {{ len .Trackers }}</span></span>
   <a href="/trackers/add" class="sort-btn">ADD TRACKER</a>
-  {{ if .Trackers }}
-  <div id="sync-status" class="sync-status{{ if isStale .LastSync }} is-stale{{ end }}">
-    {{ if .LastSync }}
-      {{ if isStale .LastSync }}<span class="stale-mark" aria-label="stale">⚠</span>{{ end }}
-      <span class="sync-age">{{ staleAge .LastSync }}</span>
-    {{ else }}
-      <span class="sync-age muted">—</span>
-    {{ end }}
-  </div>
-  {{ end }}
   {{ if gt (len .Trackers) 1 }}
   <span class="sort-mobile">
     <select class="sort-select" onchange="location.href=this.value" aria-label="Sort trackers">

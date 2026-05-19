@@ -24,15 +24,22 @@ import (
 // refreshResult is the data passed to the tracker_cards partial.
 type refreshResult struct {
 	Trackers []*trackerCardView
-	LastSync *time.Time
 }
 
 // refresh syncs every configured tracker. Trackers without credentials
 // are skipped (rather than errored) — they're presumably half-configured.
 func (h *Handler) refresh(w http.ResponseWriter, r *http.Request) {
-	cfg := h.store.Get()
 	h.log.Info("SYSTEM", "Refresh-all triggered")
+	cfg := h.refreshAllEntries()
+	views := h.buildTrackerViews(cfg)
+	sortTrackerViews(views, r.URL.Query().Get("sort"))
+	h.renderPartial(w, "tracker_cards", refreshResult{
+		Trackers: views,
+	})
+}
 
+func (h *Handler) refreshAllEntries() config.Config {
+	cfg := h.store.Get()
 	changed := false
 	for i, entry := range cfg.Trackers {
 		if entry.APIKey == "" || entry.TrackerURL == "" {
@@ -42,19 +49,12 @@ func (h *Handler) refresh(w http.ResponseWriter, r *http.Request) {
 		h.refreshOneEntry(&cfg, i)
 		changed = true
 	}
-
 	if changed {
 		// Persist even partial failures: SyncError + LastSync is what
-		// the UI uses to render the stale-mark and per-card error banner.
+		// the UI uses to render the per-card error banner.
 		_ = h.store.Save(&cfg)
 	}
-
-	views := h.buildTrackerViews(cfg)
-	sortTrackerViews(views, r.URL.Query().Get("sort"))
-	h.renderPartial(w, "tracker_cards", refreshResult{
-		Trackers: views,
-		LastSync: latestSync(cfg.Trackers),
-	})
+	return cfg
 }
 
 // refreshOne refreshes a single tracker by URL-path index and returns

@@ -8,12 +8,4 @@
 </div>
 {{ end }}
 
-<div id="sync-status" hx-swap-oob="true" class="sync-status{{ if isStale .LastSync }} is-stale{{ end }}">
-  {{ if .LastSync }}
-    {{ if isStale .LastSync }}<span class="stale-mark" aria-label="stale">⚠</span>{{ end }}
-    <span class="sync-age">{{ staleAge .LastSync }}</span>
-  {{ else }}
-    <span class="sync-age muted">—</span>
-  {{ end }}
-</div>
 {{ end }}

@@ -2,8 +2,6 @@
 <nav class="config-nav">
   <a href="/" class="config-nav-back">← DASHBOARD</a>
   <span class="config-nav-sep">/</span>
-  <a href="/tracker/{{ .TrackerIdx }}/config" class="config-nav-link {{ if eq .ActiveTab "overview" }}is-active{{ end }}">OVERVIEW</a>
-  <a href="/tracker/{{ .TrackerIdx }}/config/ptv" class="config-nav-link {{ if eq .ActiveTab "ptv" }}is-active{{ end }}">PTV</a>
   {{ if .ProwlarrEnabled }}
   <a href="/tracker/{{ .TrackerIdx }}/config/prowlarr" class="config-nav-link {{ if eq .ActiveTab "prowlarr" }}is-active{{ end }}">PROWLARR</a>
   {{ end }}

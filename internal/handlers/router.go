@@ -143,6 +143,7 @@ func NewRouter(store *config.Store, syncer *defs.Syncer, autobrrSyncer *autobrrd
 		// Tracker add/config screens
 		r.Get("/trackers/add", h.trackerAddPage)
 		r.Get("/tracker/{idx}/config", h.trackerConfigPage)
+		r.Post("/tracker/{idx}/config", h.configTrackerUpdate)
 		r.Get("/tracker/{idx}/config/ptv", h.trackerPTVConfigPage)
 		r.Get("/tracker/{idx}/config/prowlarr", h.configTrackerProwlarrPage)
 		r.Post("/tracker/{idx}/config/prowlarr", h.configTrackerProwlarrPost)
@@ -404,7 +405,6 @@ func (h *Handler) parseTemplates() map[string]*template.Template {
 		"config_landing":         parse("layout", layout, "templates/config_landing.html"),
 		"integrations":           parse("layout", layout, configNav, "templates/integrations.html"),
 		"tracker_add":            parse("layout", layout, configNav, "templates/tracker_add.html"),
-		"tracker_config":         parse("layout", layout, trackerNav, "templates/tracker_config.html"),
 		"tracker_ptv_config":     parse("layout", layout, trackerNav, "templates/tracker_ptv_config.html"),
 		"tracker_autobrr_config": parse("layout", layout, trackerNav, "templates/tracker_autobrr_config.html"),
 		"config_trackers":        parse("layout", layout, configNav, "templates/config_trackers.html"),
