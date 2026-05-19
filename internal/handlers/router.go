@@ -391,6 +391,7 @@ func (h *Handler) parseTemplates() map[string]*template.Template {
 		configNav   = "templates/partials/config_nav.html"
 		prowlarrNav = "templates/partials/prowlarr_nav.html"
 		autobrrNav  = "templates/partials/autobrr_nav.html"
+		setting     = "templates/partials/setting_field.html"
 	)
 
 	parse := func(rootName string, files ...string) *template.Template {
@@ -406,7 +407,7 @@ func (h *Handler) parseTemplates() map[string]*template.Template {
 		"config_landing":         parse("layout", layout, "templates/config_landing.html"),
 		"integrations":           parse("layout", layout, configNav, "templates/integrations.html"),
 		"tracker_add":            parse("layout", layout, configNav, "templates/tracker_add.html"),
-		"tracker_config_unified": parse("layout", layout, "templates/tracker_config_unified.html"),
+		"tracker_config_unified": parse("layout", layout, setting, "templates/tracker_config_unified.html"),
 		"config_trackers":        parse("layout", layout, configNav, "templates/config_trackers.html"),
 		"config_prowlarr":        parse("layout", layout, configNav, prowlarrNav, "templates/config_prowlarr.html"),
 		"config_autobrr":         parse("layout", layout, configNav, autobrrNav, "templates/config_autobrr.html"),

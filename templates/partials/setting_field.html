@@ -1,0 +1,33 @@
+{{ define "setting_field" }}
+<div class="config-row {{ .RowClass }}">
+  <div class="field">
+    {{ if .Field.Info }}
+      {{ if .Field.HelpText }}<p class="config-hint">{{ .Field.HelpText }}</p>{{ end }}
+    {{ else }}
+    <label class="field-label">{{ .Field.Label }}</label>
+    {{ $fieldValue := .Field.Value }}
+    {{ if .Field.Secret }}
+    <input class="field-input" type="password" name="setting_{{ .Field.Name }}" autocomplete="off" {{ if .Field.HasValue }}placeholder="set — enter new value to replace"{{ else if .Field.Required }}placeholder="required"{{ end }}>
+    {{ else if eq .Field.Type "checkbox" }}
+    <input type="hidden" name="setting_{{ .Field.Name }}" value="false">
+    <label class="checkline">
+      <input type="checkbox" name="setting_{{ .Field.Name }}" value="true" {{ if eq $fieldValue "true" }}checked{{ end }}>
+      <span>enabled</span>
+    </label>
+    {{ else if .Field.SelectOptions }}
+    <select class="field-input field-select" name="setting_{{ .Field.Name }}">
+      {{ range .Field.SelectOptions }}
+      <option value="{{ .Value }}" {{ if eq .Value $fieldValue }}selected{{ end }}>{{ .Name }}</option>
+      {{ end }}
+    </select>
+    {{ else if eq .Field.Type "number" }}
+    <input class="field-input" type="number" name="setting_{{ .Field.Name }}" value="{{ $fieldValue }}" autocomplete="off" placeholder="{{ .Field.Placeholder }}">
+    {{ else }}
+    <input class="field-input" type="text" name="setting_{{ .Field.Name }}" value="{{ $fieldValue }}" autocomplete="off" placeholder="{{ .Field.Placeholder }}">
+    {{ end }}
+    {{ if .Field.HelpText }}<p class="config-hint">{{ .Field.HelpText }}</p>{{ end }}
+    {{ if .ExtraHint }}<p class="config-hint muted">{{ .ExtraHint }}</p>{{ end }}
+    {{ end }}
+  </div>
+</div>
+{{ end }}
