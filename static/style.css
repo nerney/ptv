@@ -96,8 +96,20 @@ a:hover { color: var(--accent); }
 .brand-link {
   text-decoration: none;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-icon {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
 }
 
 .brand-back {
@@ -2077,7 +2089,7 @@ a:hover { color: var(--accent); }
 .sort-select option { background: var(--bg); color: var(--fg); }
 
 @media (min-width: 640px) {
-  .site-header        { padding: 20px 32px 18px; align-items: baseline; }
+  .site-header        { padding: 20px 32px 18px; align-items: center; }
   .brand-sep,
   .brand-sub          { display: inline; }
   .page-bar           { padding: 10px 32px; flex-wrap: nowrap; gap: 0; align-items: baseline; }
