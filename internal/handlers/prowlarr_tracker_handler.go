@@ -120,6 +120,10 @@ func (h *Handler) pushTrackerProwlarrConfig(cfg *config.Config, i int, schema pr
 		if err != nil {
 			return err
 		}
+		updated, err = h.ensureProwlarrEnabled(client, updated, root.Enable)
+		if err != nil {
+			return err
+		}
 		now := time.Now()
 		cfg.Trackers[i].Enabled = updated.Enable
 		cfg.Trackers[i].ProwlarrName = prowlarr.BaseIndexerName(updated.Name)
@@ -143,6 +147,10 @@ func (h *Handler) pushTrackerProwlarrConfig(cfg *config.Config, i int, schema pr
 	schema = prowlarr.IndexerSchemaForPayload(schema, appProfileID)
 	root.AppProfileID = appProfileID
 	updated, err := client.AddIndexerWithRoot(schema, fields, root)
+	if err != nil {
+		return err
+	}
+	updated, err = h.ensureProwlarrEnabled(client, updated, root.Enable)
 	if err != nil {
 		return err
 	}
@@ -181,6 +189,26 @@ func (h *Handler) prowlarrRootConfig(cfg *config.Config, i int, schema prowlarr.
 	cfg.Trackers[i].ProwlarrAppProfileID = appProfileID
 	cfg.Trackers[i].Enabled = enabled
 	return prowlarr.RootConfig(name, enabled, appProfileID, t.ProwlarrTags), nil
+}
+
+func (h *Handler) ensureProwlarrEnabled(client *prowlarr.Client, idx *prowlarr.Indexer, want bool) (*prowlarr.Indexer, error) {
+	if idx == nil {
+		return nil, fmt.Errorf("missing prowlarr indexer")
+	}
+	if idx.Enable == want {
+		return idx, nil
+	}
+	if err := client.SetEnabled(*idx, want); err != nil {
+		return nil, fmt.Errorf("set enabled=%t: %w", want, err)
+	}
+	refreshed, err := client.GetIndexer(idx.ID)
+	if err != nil {
+		return nil, fmt.Errorf("verify enabled=%t: %w", want, err)
+	}
+	if refreshed.Enable != want {
+		return nil, fmt.Errorf("prowlarr enable state remained %t (wanted %t)", refreshed.Enable, want)
+	}
+	return refreshed, nil
 }
 
 func prowlarrBaseName(t *config.TrackerEntry) string {

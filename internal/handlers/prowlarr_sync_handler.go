@@ -264,6 +264,10 @@ func (h *Handler) pushTrackerToProwlarr(
 			if uErr != nil {
 				return "updated", uErr
 			}
+			updated, uErr = h.ensureProwlarrEnabled(client, updated, root.Enable)
+			if uErr != nil {
+				return "updated", uErr
+			}
 			cfg.Trackers[i].Enabled = updated.Enable
 			cfg.Trackers[i].ProwlarrName = prowlarr.BaseIndexerName(updated.Name)
 			cfg.Trackers[i].ProwlarrAppProfileID = updated.AppProfileID
@@ -289,6 +293,10 @@ func (h *Handler) pushTrackerToProwlarr(
 	payloadSchema := prowlarr.IndexerSchemaForPayload(*schema, appProfileID)
 	root.AppProfileID = appProfileID
 	added, aErr := client.AddIndexerWithRoot(payloadSchema, fields, root)
+	if aErr != nil {
+		return "created", aErr
+	}
+	added, aErr = h.ensureProwlarrEnabled(client, added, root.Enable)
 	if aErr != nil {
 		return "created", aErr
 	}
