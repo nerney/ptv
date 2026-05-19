@@ -39,14 +39,8 @@ type trackerAddData struct {
 }
 
 type prowlarrDiffData struct {
-	TrackerIdx      int
-	Tracker         *config.TrackerEntry
-	ProwlarrEnabled bool
-	Row             prowlarrSyncRow
-	FlashError      string
-	FlashSuccess    string
-	ActiveTab       string
-	Section         string
+	trackerConfigData
+	Row prowlarrSyncRow
 }
 
 type autobrrTrackerData struct {
@@ -206,13 +200,7 @@ func (h *Handler) trackerProwlarrDiffPage(w http.ResponseWriter, r *http.Request
 		return
 	}
 	data := prowlarrDiffData{
-		TrackerIdx:      idx,
-		Tracker:         cfg.Trackers[idx],
-		ProwlarrEnabled: cfg.ProwlarrEnabled && cfg.ProwlarrURL != "" && cfg.ProwlarrAPIKey != "",
-		FlashError:      r.URL.Query().Get("err"),
-		FlashSuccess:    r.URL.Query().Get("ok"),
-		ActiveTab:       "prowlarr",
-		Section:         "tracker",
+		trackerConfigData: h.trackerConfigData(idx, cfg.Trackers[idx], cfg, r, "prowlarr"),
 	}
 	if !data.ProwlarrEnabled {
 		h.render(w, "tracker_prowlarr_diff", data)
