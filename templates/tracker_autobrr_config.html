@@ -23,29 +23,141 @@
     <p class="config-hint">Autobrr is not enabled.</p>
     <p class="config-hint"><a href="/config/integrations/autobrr" class="link-action">→ CONFIGURE AUTOBRR</a></p>
   </section>
+  {{ else if .DefError }}
+  <section class="config-section">
+    <h2 class="config-section-title">DEFINITION UNAVAILABLE</h2>
+    <div class="section-rule"></div>
+    <p class="config-hint">{{ .DefError }}</p>
+    <div class="import-submit-row">
+      <a href="/tracker/{{ .TrackerIdx }}/config" class="btn-sm btn-ghost">BACK</a>
+    </div>
+  </section>
   {{ else }}
   <section class="config-section">
-    <h2 class="config-section-title">{{ .Tracker.Name }}<span class="muted"> — Autobrr config</span></h2>
+    <h2 class="config-section-title">
+      {{ .Tracker.Name }}<span class="muted"> — Autobrr config</span>
+    </h2>
     <div class="section-rule"></div>
+
     <div class="tracker-row-meta">
       <span class="meta-label">AUTOBRR</span>
-      <span class="meta-val">{{ if gt .Tracker.AutobrrID 0 }}#{{ .Tracker.AutobrrID }} — {{ if .Tracker.AutobrrEnabled }}enabled{{ else }}disabled{{ end }}{{ else }}not linked{{ end }}</span>
+      <span class="meta-val">
+        {{ if gt .Tracker.AutobrrID 0 }}
+          #{{ .Tracker.AutobrrID }} — {{ if .Tracker.AutobrrEnabled }}enabled{{ else }}disabled{{ end }}
+        {{ else }}
+          not yet linked
+        {{ end }}
+      </span>
     </div>
+    {{ if .Tracker.AutobrrLastSync }}
+    <div class="tracker-row-meta">
+      <span class="meta-label">LAST PUSH</span>
+      <span class="meta-val">{{ staleAge .Tracker.AutobrrLastSync }}</span>
+    </div>
+    {{ end }}
+    {{ if .Tracker.AutobrrSyncError }}
+    <div class="alert alert-warn">
+      <span class="alert-dot">⚠</span>{{ .Tracker.AutobrrSyncError }}
+    </div>
+    {{ end }}
+
+    {{ if gt .Tracker.AutobrrID 0 }}
+    <form method="POST" action="/tracker/{{ .TrackerIdx }}/config/autobrr" class="config-form">
+      {{ if .Definition }}
+      {{ $rootFields := 0 }}
+      {{ $ircFields := 0 }}
+      {{ range .Fields }}
+        {{ if eq .Layer "root" }}
+          {{ $rootFields = add $rootFields 1 }}
+        {{ else }}
+          {{ $ircFields = add $ircFields 1 }}
+        {{ end }}
+      {{ end }}
+
+      <!-- Root settings section -->
+      {{ if gt $rootFields 0 }}
+      <div class="config-row">
+        <h3 class="field-section-title">Root Settings</h3>
+      </div>
+      {{ range .Fields }}
+        {{ if eq .Layer "root" }}
+        <div class="config-row autobrr-field-row">
+          <div class="field">
+            <label class="field-label">{{ .Label }}</label>
+            {{ if .Secret }}
+            <input class="field-input" type="password" name="setting_{{ .Name }}" autocomplete="off" {{ if .HasValue }}placeholder="set — enter new value to replace"{{ else }}placeholder="required"{{ end }}>
+            {{ else if eq .Type "checkbox" }}
+            <input type="hidden" name="setting_{{ .Name }}" value="false">
+            <label class="checkline">
+              <input type="checkbox" name="setting_{{ .Name }}" value="true" {{ if .Value }}checked{{ end }}>
+              <span>enabled</span>
+            </label>
+            {{ else if eq .Type "number" }}
+            <input class="field-input" type="number" name="setting_{{ .Name }}" value="{{ .Value }}" autocomplete="off">
+            {{ else }}
+            <input class="field-input" type="text" name="setting_{{ .Name }}" value="{{ .Value }}" autocomplete="off">
+            {{ end }}
+            {{ if .Help }}<p class="config-hint">{{ .Help }}</p>{{ end }}
+          </div>
+        </div>
+        {{ end }}
+      {{ end }}
+      {{ end }}
+
+      <!-- IRC settings section -->
+      {{ if gt $ircFields 0 }}
+      <div class="config-row">
+        <h3 class="field-section-title">IRC Settings</h3>
+      </div>
+      {{ range .Fields }}
+        {{ if eq .Layer "irc" }}
+        <div class="config-row autobrr-field-row">
+          <div class="field">
+            <label class="field-label">{{ .Label }}</label>
+            {{ if .Secret }}
+            <input class="field-input" type="password" name="setting_{{ .Name }}" autocomplete="off" {{ if .HasValue }}placeholder="set — enter new value to replace"{{ else }}{{ if .Required }}placeholder="required"{{ end }}{{ end }}>
+            {{ else if eq .Type "checkbox" }}
+            <input type="hidden" name="setting_{{ .Name }}" value="false">
+            <label class="checkline">
+              <input type="checkbox" name="setting_{{ .Name }}" value="true" {{ if .Value }}checked{{ end }}>
+              <span>enabled</span>
+            </label>
+            {{ else if eq .Type "number" }}
+            <input class="field-input" type="number" name="setting_{{ .Name }}" value="{{ .Value }}" autocomplete="off">
+            {{ else }}
+            <input class="field-input" type="text" name="setting_{{ .Name }}" value="{{ .Value }}" autocomplete="off">
+            {{ end }}
+            {{ if .Help }}<p class="config-hint">{{ .Help }}</p>{{ end }}
+          </div>
+        </div>
+        {{ end }}
+      {{ end }}
+      {{ end }}
+
+      {{ end }}
+      <div class="import-submit-row">
+        <a href="/tracker/{{ .TrackerIdx }}/config" class="btn-sm btn-ghost">CANCEL</a>
+        <button type="submit" name="action" value="save" class="btn-sm btn-primary">SAVE</button>
+        <button type="submit" name="action" value="save_push" class="btn-primary">SAVE + PUSH →</button>
+      </div>
+    </form>
+
     <div class="import-submit-row">
-      <a href="/tracker/{{ .TrackerIdx }}/config" class="btn-sm btn-ghost">CANCEL</a>
-      {{ if gt .Tracker.AutobrrID 0 }}
       <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/autobrr/toggle" class="inline-form">
         <button type="submit" class="btn-sm btn-ghost">{{ if .Tracker.AutobrrEnabled }}DISABLE IN AUTOBRR{{ else }}ENABLE IN AUTOBRR{{ end }}</button>
       </form>
       <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/autobrr/remove" class="inline-form">
         <button type="submit" class="btn-sm btn-danger">REMOVE FROM AUTOBRR</button>
       </form>
-      {{ else }}
+    </div>
+    {{ else }}
+    <div class="import-submit-row">
+      <a href="/tracker/{{ .TrackerIdx }}/config" class="btn-sm btn-ghost">CANCEL</a>
       <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/autobrr/add" class="inline-form">
         <button type="submit" class="btn-primary">ADD TO AUTOBRR →</button>
       </form>
-      {{ end }}
     </div>
+    {{ end }}
   </section>
   {{ end }}
 </main>

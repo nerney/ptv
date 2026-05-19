@@ -150,6 +150,7 @@ func NewRouter(store *config.Store, syncer *defs.Syncer, autobrrSyncer *autobrrd
 		r.Get("/tracker/{idx}/config/prowlarr/diff", h.trackerProwlarrDiffPage)
 		r.Post("/tracker/{idx}/config/prowlarr/diff", h.trackerProwlarrDiffPush)
 		r.Get("/tracker/{idx}/config/autobrr", h.trackerAutobrrConfigPage)
+		r.Post("/tracker/{idx}/config/autobrr", h.trackerAutobrrConfigPost)
 		r.Post("/trackers/add", h.configAdd)
 		r.Post("/tracker/{idx}/config/ptv", h.configTrackerUpdate)
 		r.Post("/tracker/{idx}/config/delete", h.configTrackerDelete)

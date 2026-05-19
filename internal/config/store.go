@@ -111,7 +111,9 @@ type TrackerEntry struct {
 	// AutobrrSettings is the full desired config we manage in Autobrr,
 	// keyed by field name (matches the autobrr YAML def setting names).
 	// Same write/read/security contract as ProwlarrSettings above.
-	AutobrrSettings map[string]string `json:"autobrr_settings,omitempty"`
+	AutobrrSettings  map[string]string `json:"autobrr_settings,omitempty"`
+	AutobrrLastSync  *time.Time        `json:"autobrr_last_sync,omitempty"`
+	AutobrrSyncError string            `json:"autobrr_sync_error,omitempty"`
 
 	// Branding — best-effort scrape of the tracker's landing page.
 	// Sticky once obtained; retried on each refresh until found.
