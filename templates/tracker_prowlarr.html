@@ -10,8 +10,7 @@
   </div>
 </header>
 
-{{ template "config_nav" . }}
-{{ template "prowlarr_nav" . }}
+{{ template "tracker_nav" . }}
 
 <div class="page-rule"></div>
 
@@ -33,14 +32,14 @@
     <h2 class="config-section-title">PROWLARR REQUIRED</h2>
     <div class="section-rule"></div>
     <p class="config-hint">Prowlarr is not enabled.</p>
-    <p class="config-hint"><a href="/config/prowlarr" class="link-action">→ CONFIGURE PROWLARR</a></p>
+    <p class="config-hint"><a href="/config/integrations/prowlarr" class="link-action">→ CONFIGURE PROWLARR</a></p>
   </section>
   {{ else if .SchemaError }}
   <section class="config-section">
     <h2 class="config-section-title">SCHEMA UNAVAILABLE</h2>
     <div class="section-rule"></div>
     <p class="config-hint">{{ .SchemaError }}</p>
-    <p class="config-hint"><a href="/config/prowlarr/import" class="link-action">→ RE-IMPORT FROM PROWLARR</a></p>
+    <p class="config-hint"><a href="/config/integrations/prowlarr/import" class="link-action">→ RE-IMPORT FROM PROWLARR</a></p>
   </section>
   {{ else }}
 
@@ -72,7 +71,7 @@
     </div>
     {{ end }}
 
-    <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/prowlarr" class="config-form">
+    <form method="POST" action="/tracker/{{ .TrackerIdx }}/config/prowlarr" class="config-form">
       <div class="config-row prowlarr-field-row">
         <div class="field">
           <label class="field-label">Name</label>
@@ -192,6 +191,7 @@
       {{ end }}
 
       <div class="import-submit-row">
+        <a href="/tracker/{{ .TrackerIdx }}/config" class="btn-sm btn-ghost">CANCEL</a>
         <button type="submit" name="action" value="save" class="btn-sm btn-ghost">SAVE</button>
         <button type="submit" name="action" value="save_push" class="btn-primary">SAVE + PUSH →</button>
       </div>

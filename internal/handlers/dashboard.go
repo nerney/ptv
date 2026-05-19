@@ -11,12 +11,14 @@ import (
 // to /config: redirects-on-empty mask the underlying state and surprise
 // the user.
 type dashboardData struct {
-	Trackers     []*trackerCardView
-	LastSync     *time.Time // freshest sync across all trackers; nil if none
-	Date         string
-	Sort         string // current sort key — "", "ratio", "uploaded", "active"
-	FlashError   string
-	FlashSuccess string
+	Trackers        []*trackerCardView
+	LastSync        *time.Time // freshest sync across all trackers; nil if none
+	Date            string
+	Sort            string // current sort key — "", "ratio", "uploaded", "active"
+	ProwlarrEnabled bool
+	AutobrrEnabled  bool
+	FlashError      string
+	FlashSuccess    string
 }
 
 func (h *Handler) dashboard(w http.ResponseWriter, r *http.Request) {
@@ -25,11 +27,13 @@ func (h *Handler) dashboard(w http.ResponseWriter, r *http.Request) {
 	views := h.buildTrackerViews(cfg)
 	sortTrackerViews(views, sortKey)
 	h.render(w, "dashboard", dashboardData{
-		Trackers:     views,
-		LastSync:     latestSync(cfg.Trackers),
-		Date:         time.Now().Format("02 Jan 2006"),
-		Sort:         sortKey,
-		FlashError:   r.URL.Query().Get("err"),
-		FlashSuccess: r.URL.Query().Get("ok"),
+		Trackers:        views,
+		LastSync:        latestSync(cfg.Trackers),
+		Date:            time.Now().Format("02 Jan 2006"),
+		Sort:            sortKey,
+		ProwlarrEnabled: cfg.ProwlarrEnabled && cfg.ProwlarrURL != "" && cfg.ProwlarrAPIKey != "",
+		AutobrrEnabled:  cfg.AutobrrEnabled && cfg.AutobrrURL != "" && cfg.AutobrrAPIKey != "",
+		FlashError:      r.URL.Query().Get("err"),
+		FlashSuccess:    r.URL.Query().Get("ok"),
 	})
 }

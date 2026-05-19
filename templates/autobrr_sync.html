@@ -1,0 +1,67 @@
+{{ define "content" }}
+<header class="site-header">
+  <div class="header-brand">
+    <a href="/" class="brand-link">
+      <span class="brand-back">←</span>
+      <img src="/static/icon.png" alt="" class="brand-icon">
+      <span class="brand-mark">PTV</span>
+      <span class="brand-sep">—</span>
+      <span class="brand-sub">AUTOBRR / SYNC</span>
+    </a>
+  </div>
+</header>
+<div class="page-rule"></div>
+<main class="config-main">
+  {{ if .FlashError }}<div class="alert alert-error"><span class="alert-dot">●</span>{{ .FlashError }}</div>{{ end }}
+  {{ if .FlashSuccess }}<div class="alert alert-ok"><span class="alert-dot">●</span>{{ .FlashSuccess }}</div>{{ end }}
+  {{ if not .AutobrrEnabled }}
+  <section class="config-section">
+    <h2 class="config-section-title">AUTOBRR REQUIRED</h2>
+    <div class="section-rule"></div>
+    <p class="config-hint">Autobrr is not enabled.</p>
+  </section>
+  {{ else }}
+  <form method="POST" action="/sync/autobrr" class="sync-form">
+    {{ if .New }}
+    <section class="config-section">
+      <h2 class="config-section-title">NEW IN AUTOBRR<span class="muted"> — {{ len .New }}</span></h2>
+      <div class="section-rule"></div>
+      <p class="config-hint">These trackers will be linked to an existing Autobrr indexer by URL or created when Autobrr has a matching schema.</p>
+      <div class="sync-list">
+        {{ range .New }}
+        <label class="sync-row sync-row-new">
+          <input type="checkbox" name="tracker_idx" value="{{ .TrackerIdx }}" class="sync-check sync-check-row" checked>
+          <span class="sync-row-tag">NEW</span>
+          <span class="sync-row-name">{{ .Name }}</span>
+          <span class="sync-row-url">{{ .TrackerURL }}</span>
+        </label>
+        {{ end }}
+      </div>
+    </section>
+    {{ end }}
+    {{ if .Linked }}
+    <section class="config-section">
+      <h2 class="config-section-title">LINKED<span class="muted"> — {{ len .Linked }}</span></h2>
+      <div class="section-rule"></div>
+      <div class="sync-list">
+        {{ range .Linked }}
+        <label class="sync-row sync-row-synced">
+          <input type="checkbox" name="tracker_idx" value="{{ .TrackerIdx }}" class="sync-check sync-check-row" checked>
+          <span class="sync-row-tag sync-row-tag-ok">✓</span>
+          <span class="sync-row-name">{{ .Name }}</span>
+          <span class="sync-row-url">#{{ .AutobrrID }}</span>
+        </label>
+        {{ end }}
+      </div>
+    </section>
+    {{ end }}
+    {{ if or .New .Linked }}
+    <div class="import-submit-row">
+      <a href="/" class="btn-sm btn-ghost">CANCEL</a>
+      <button type="submit" class="btn-primary">PUSH SELECTED →</button>
+    </div>
+    {{ end }}
+  </form>
+  {{ end }}
+</main>
+{{ end }}

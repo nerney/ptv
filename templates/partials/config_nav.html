@@ -2,10 +2,8 @@
 <nav class="config-nav">
   <a href="/config" class="config-nav-back">← BACK</a>
   <span class="config-nav-sep">/</span>
-  <a href="/config/trackers" class="config-nav-link {{ if eq .Section "trackers" }}is-active{{ end }}">TRACKERS</a>
-  <a href="/config/prowlarr" class="config-nav-link {{ if eq .Section "prowlarr" }}is-active{{ end }}">PROWLARR</a>
-  <a href="/config/autobrr" class="config-nav-link {{ if eq .Section "autobrr" }}is-active{{ end }}">AUTOBRR</a>
-  <a href="/config/network" class="config-nav-link {{ if eq .Section "network" }}is-active{{ end }}">NETWORK</a>
+  <a href="/config/app/network" class="config-nav-link {{ if eq .Section "app" }}is-active{{ end }}">APP CONFIG</a>
+  <a href="/config/integrations" class="config-nav-link {{ if eq .Section "integrations" }}is-active{{ end }}">INTEGRATIONS</a>
   <form method="POST" action="/logout" class="inline-form config-nav-logout-form">
     <button type="submit" class="config-nav-logout-btn">LOGOUT</button>
   </form>

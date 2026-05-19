@@ -135,9 +135,26 @@ func NewRouter(store *config.Store, syncer *defs.Syncer, autobrrSyncer *autobrrd
 
 		// Config landing → drill-in sub-pages
 		r.Get("/config", h.configLanding)
+		r.Get("/config/app", redirectTo("/config/app/network"))
+		r.Get("/config/app/network", h.networkPage)
+		r.Post("/config/app/network", h.networkSubmit)
+		r.Get("/config/integrations", h.integrationsPage)
 
-		// Trackers tab
-		r.Get("/config/trackers", h.configTrackersPage)
+		// Tracker add/config screens
+		r.Get("/trackers/add", h.trackerAddPage)
+		r.Get("/tracker/{idx}/config", h.trackerConfigPage)
+		r.Get("/tracker/{idx}/config/ptv", h.trackerPTVConfigPage)
+		r.Get("/tracker/{idx}/config/prowlarr", h.configTrackerProwlarrPage)
+		r.Post("/tracker/{idx}/config/prowlarr", h.configTrackerProwlarrPost)
+		r.Get("/tracker/{idx}/config/prowlarr/diff", h.trackerProwlarrDiffPage)
+		r.Post("/tracker/{idx}/config/prowlarr/diff", h.trackerProwlarrDiffPush)
+		r.Get("/tracker/{idx}/config/autobrr", h.trackerAutobrrConfigPage)
+		r.Post("/trackers/add", h.configAdd)
+		r.Post("/tracker/{idx}/config/ptv", h.configTrackerUpdate)
+		r.Post("/tracker/{idx}/config/delete", h.configTrackerDelete)
+
+		// Legacy tracker paths kept as action aliases.
+		r.Get("/config/trackers", redirectTo("/trackers/add"))
 		r.Post("/config/add", h.configAdd)
 		r.Post("/config/tracker/{idx}/update", h.configTrackerUpdate)
 		r.Post("/config/tracker/{idx}/delete", h.configTrackerDelete)
@@ -150,27 +167,33 @@ func NewRouter(store *config.Store, syncer *defs.Syncer, autobrrSyncer *autobrrd
 		r.Post("/config/tracker/{idx}/autobrr/toggle", h.configTrackerAutobrrToggle)
 		r.Post("/config/tracker/{idx}/autobrr/remove", h.configTrackerAutobrrRemove)
 
-		// Prowlarr tab — settings, import, sync
-		r.Get("/config/prowlarr", h.configProwlarrPage)
-		r.Post("/config/prowlarr", h.configProwlarrPost)
-		r.Post("/config/prowlarr/enable", h.configProwlarrEnable)
-		r.Post("/config/prowlarr/disable", h.configProwlarrDisable)
-		r.Get("/config/prowlarr/import", h.importPage)
-		r.Post("/config/prowlarr/import", h.importSubmit)
-		r.Get("/config/prowlarr/sync", h.prowlarrSyncPage)
-		r.Post("/config/prowlarr/sync", h.prowlarrSyncSubmit)
+		// Prowlarr integration — global settings/import plus dashboard sync.
+		r.Get("/config/integrations/prowlarr", h.configProwlarrPage)
+		r.Post("/config/integrations/prowlarr", h.configProwlarrPost)
+		r.Post("/config/integrations/prowlarr/enable", h.configProwlarrEnable)
+		r.Post("/config/integrations/prowlarr/disable", h.configProwlarrDisable)
+		r.Get("/config/integrations/prowlarr/import", h.importPage)
+		r.Post("/config/integrations/prowlarr/import", h.importSubmit)
+		r.Get("/sync/prowlarr", h.prowlarrSyncPage)
+		r.Post("/sync/prowlarr", h.prowlarrSyncSubmit)
+		r.Get("/sync/autobrr", h.autobrrSyncPage)
+		r.Post("/sync/autobrr", h.autobrrSyncSubmit)
+		r.Get("/config/prowlarr", redirectTo("/config/integrations/prowlarr"))
+		r.Get("/config/prowlarr/import", redirectTo("/config/integrations/prowlarr/import"))
+		r.Get("/config/prowlarr/sync", redirectTo("/sync/prowlarr"))
 
-		// Autobrr tab — settings + import (no per-tracker sync; the
-		// add/toggle/remove buttons above are the per-tracker controls).
-		r.Get("/config/autobrr", h.configAutobrrPage)
-		r.Post("/config/autobrr", h.configAutobrrPost)
-		r.Post("/config/autobrr/enable", h.configAutobrrEnable)
-		r.Post("/config/autobrr/disable", h.configAutobrrDisable)
-		r.Get("/config/autobrr/import", h.importAutobrrPage)
-		r.Post("/config/autobrr/import", h.importAutobrrSubmit)
+		// Autobrr integration — global settings/import.
+		r.Get("/config/integrations/autobrr", h.configAutobrrPage)
+		r.Post("/config/integrations/autobrr", h.configAutobrrPost)
+		r.Post("/config/integrations/autobrr/enable", h.configAutobrrEnable)
+		r.Post("/config/integrations/autobrr/disable", h.configAutobrrDisable)
+		r.Get("/config/integrations/autobrr/import", h.importAutobrrPage)
+		r.Post("/config/integrations/autobrr/import", h.importAutobrrSubmit)
+		r.Get("/config/autobrr", redirectTo("/config/integrations/autobrr"))
+		r.Get("/config/autobrr/import", redirectTo("/config/integrations/autobrr/import"))
 
 		// Network tab — IP allowlist + reverse-proxy host
-		r.Get("/config/network", h.networkPage)
+		r.Get("/config/network", redirectTo("/config/app/network"))
 		r.Post("/config/network", h.networkSubmit)
 
 		// Stats refresh from UNIT3D — all + per-card
@@ -247,7 +270,7 @@ func (h *Handler) ipAllowGuard(next http.Handler) http.Handler {
 }
 
 // networkConfirmedGuard redirects any auth-group request back to
-// /config/network until the user has saved the network config at
+// /config/app/network until the user has saved the network config at
 // least once. The network page itself is exempt (otherwise the user
 // would be stuck in an infinite redirect). Logout is exempt too so
 // users can always get out.
@@ -261,14 +284,14 @@ func (h *Handler) networkConfirmedGuard(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		http.Redirect(w, r, "/config/network", http.StatusSeeOther)
+		http.Redirect(w, r, "/config/app/network", http.StatusSeeOther)
 	})
 }
 
 // pathBypassesNetworkGate names the paths that may be reached while
 // the user hasn't confirmed network config yet.
 func pathBypassesNetworkGate(p string) bool {
-	return p == "/config/network" || p == "/logout"
+	return p == "/config/app/network" || p == "/config/network" || p == "/logout"
 }
 
 // authGuard requires an active session for any route it covers.
@@ -365,6 +388,7 @@ func (h *Handler) parseTemplates() map[string]*template.Template {
 		configNav   = "templates/partials/config_nav.html"
 		prowlarrNav = "templates/partials/prowlarr_nav.html"
 		autobrrNav  = "templates/partials/autobrr_nav.html"
+		trackerNav  = "templates/partials/tracker_nav.html"
 	)
 
 	parse := func(rootName string, files ...string) *template.Template {
@@ -374,20 +398,27 @@ func (h *Handler) parseTemplates() map[string]*template.Template {
 	}
 
 	return map[string]*template.Template{
-		"dashboard":        parse("layout", layout, "templates/dashboard.html", card),
-		"setup":            parse("layout", layout, "templates/setup.html"),
-		"login":            parse("layout", layout, "templates/login.html"),
-		"config_landing":   parse("layout", layout, "templates/config_landing.html"),
-		"config_trackers":  parse("layout", layout, configNav, "templates/config_trackers.html"),
-		"config_prowlarr":  parse("layout", layout, configNav, prowlarrNav, "templates/config_prowlarr.html"),
-		"config_autobrr":   parse("layout", layout, configNav, autobrrNav, "templates/config_autobrr.html"),
-		"config_network":   parse("layout", layout, configNav, "templates/config_network.html"),
-		"import":           parse("layout", layout, configNav, prowlarrNav, "templates/import.html"),
-		"autobrr_import":   parse("layout", layout, configNav, autobrrNav, "templates/autobrr_import.html"),
-		"prowlarr_sync":    parse("layout", layout, configNav, prowlarrNav, "templates/prowlarr_sync.html"),
-		"tracker_prowlarr": parse("layout", layout, configNav, prowlarrNav, "templates/tracker_prowlarr.html"),
-		"tracker_cards":    parse("tracker_cards", "templates/partials/tracker_cards.html", card),
-		"tracker_card":     parse("tracker_card", card),
+		"dashboard":              parse("layout", layout, "templates/dashboard.html", card),
+		"setup":                  parse("layout", layout, "templates/setup.html"),
+		"login":                  parse("layout", layout, "templates/login.html"),
+		"config_landing":         parse("layout", layout, "templates/config_landing.html"),
+		"integrations":           parse("layout", layout, configNav, "templates/integrations.html"),
+		"tracker_add":            parse("layout", layout, configNav, "templates/tracker_add.html"),
+		"tracker_config":         parse("layout", layout, trackerNav, "templates/tracker_config.html"),
+		"tracker_ptv_config":     parse("layout", layout, trackerNav, "templates/tracker_ptv_config.html"),
+		"tracker_autobrr_config": parse("layout", layout, trackerNav, "templates/tracker_autobrr_config.html"),
+		"config_trackers":        parse("layout", layout, configNav, "templates/config_trackers.html"),
+		"config_prowlarr":        parse("layout", layout, configNav, prowlarrNav, "templates/config_prowlarr.html"),
+		"config_autobrr":         parse("layout", layout, configNav, autobrrNav, "templates/config_autobrr.html"),
+		"config_network":         parse("layout", layout, configNav, "templates/config_network.html"),
+		"import":                 parse("layout", layout, configNav, prowlarrNav, "templates/import.html"),
+		"autobrr_import":         parse("layout", layout, configNav, autobrrNav, "templates/autobrr_import.html"),
+		"prowlarr_sync":          parse("layout", layout, configNav, prowlarrNav, "templates/prowlarr_sync.html"),
+		"autobrr_sync":           parse("layout", layout, "templates/autobrr_sync.html"),
+		"tracker_prowlarr":       parse("layout", layout, trackerNav, "templates/tracker_prowlarr.html"),
+		"tracker_prowlarr_diff":  parse("layout", layout, trackerNav, "templates/tracker_prowlarr_diff.html"),
+		"tracker_cards":          parse("tracker_cards", "templates/partials/tracker_cards.html", card),
+		"tracker_card":           parse("tracker_card", card),
 	}
 }
 

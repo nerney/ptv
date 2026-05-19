@@ -38,13 +38,13 @@
     <h2 class="config-section-title">PROWLARR REQUIRED</h2>
     <div class="section-rule"></div>
     <p class="config-hint">Prowlarr is not enabled.</p>
-    <p class="config-hint"><a href="/config/prowlarr" class="link-action">→ CONFIGURE PROWLARR</a></p>
+    <p class="config-hint"><a href="/config/integrations/prowlarr" class="link-action">→ CONFIGURE PROWLARR</a></p>
   </section>
   {{ else }}
 
   <p class="config-hint">Push your tracker configuration into Prowlarr. Synced rows match Prowlarr's current state. New rows aren't in Prowlarr yet. Drift rows exist in both but differ — pushing overrides Prowlarr with this dashboard's values (uses <code>forceSave</code>).</p>
 
-  <form method="POST" action="/config/prowlarr/sync" class="sync-form">
+  <form method="POST" action="/sync/prowlarr" class="sync-form">
 
     {{ if .New }}
     <section class="config-section">
@@ -132,7 +132,7 @@
   <section class="config-section">
     <h2 class="config-section-title">NOTHING TO SYNC</h2>
     <div class="section-rule"></div>
-    <p class="config-empty">No managed trackers yet. <a href="/config/trackers">Configure trackers</a> first.</p>
+    <p class="config-empty">No managed trackers yet. <a href="/trackers/add">Configure trackers</a> first.</p>
   </section>
   {{ end }}
 

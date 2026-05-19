@@ -15,6 +15,7 @@ type prowlarrTrackerData struct {
 	TrackerIdx      int
 	Tracker         *config.TrackerEntry
 	ProwlarrEnabled bool
+	AutobrrEnabled  bool
 	SchemaError     string
 	ProfilesError   string
 	TagsError       string
@@ -77,7 +78,7 @@ func (h *Handler) configTrackerProwlarrPost(w http.ResponseWriter, r *http.Reque
 
 	if r.FormValue("action") != "save_push" {
 		h.log.Info("CONFIG", fmt.Sprintf("Saved Prowlarr settings for %q", cfg.Trackers[idx].Name))
-		flash(w, r, trackerProwlarrPath(idx), "Prowlarr settings saved.", "")
+		flash(w, r, trackerProwlarrDiffPath(idx), "Prowlarr settings saved. Review drift before pushing.", "")
 		return
 	}
 
@@ -105,10 +106,11 @@ func (h *Handler) prowlarrTrackerData(idx int, t *config.TrackerEntry, cfg *conf
 		TrackerIdx:      idx,
 		Tracker:         t,
 		ProwlarrEnabled: cfg.ProwlarrEnabled && cfg.ProwlarrURL != "" && cfg.ProwlarrAPIKey != "",
+		AutobrrEnabled:  cfg.AutobrrEnabled && cfg.AutobrrURL != "" && cfg.AutobrrAPIKey != "",
 		FlashError:      r.URL.Query().Get("err"),
 		FlashSuccess:    r.URL.Query().Get("ok"),
-		ActiveTab:       "settings",
-		Section:         "prowlarr",
+		ActiveTab:       "prowlarr",
+		Section:         "tracker",
 	}
 	data.URLs = h.trackerDefinitionURLs(t.DefinitionName)
 	data.BaseName = prowlarr.BaseIndexerName(prowlarrBaseName(t))
@@ -278,5 +280,5 @@ func submittedIntSlice(values []string) []int {
 }
 
 func trackerProwlarrPath(idx int) string {
-	return "/config/tracker/" + strconv.Itoa(idx) + "/prowlarr"
+	return "/tracker/" + strconv.Itoa(idx) + "/config/prowlarr"
 }

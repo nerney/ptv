@@ -1,0 +1,40 @@
+{{ define "content" }}
+<header class="site-header">
+  <div class="header-brand">
+    <a href="/" class="brand-link">
+      <span class="brand-back">←</span>
+      <img src="/static/icon.png" alt="" class="brand-icon">
+      <span class="brand-mark">PTV</span>
+      <span class="brand-sep">—</span>
+      <span class="brand-sub">{{ .Tracker.Name }}</span>
+    </a>
+  </div>
+</header>
+{{ template "tracker_nav" . }}
+<div class="page-rule"></div>
+<main class="config-main">
+  {{ if .FlashError }}<div class="alert alert-error"><span class="alert-dot">●</span>{{ .FlashError }}</div>{{ end }}
+  {{ if .FlashSuccess }}<div class="alert alert-ok"><span class="alert-dot">●</span>{{ .FlashSuccess }}</div>{{ end }}
+  <div class="config-cards">
+    <a href="/tracker/{{ .TrackerIdx }}/config/ptv" class="config-card">
+      <div class="config-card-head"><span class="config-card-num">01</span><span class="config-card-title">PTV</span></div>
+      <div class="config-card-body"><span class="config-card-stat">{{ .Tracker.TrackerURL }}</span><span class="config-card-hint">tracker URL, API key, validation, delete</span></div>
+      <div class="config-card-arrow">→</div>
+    </a>
+    {{ if .ProwlarrEnabled }}
+    <a href="/tracker/{{ .TrackerIdx }}/config/prowlarr" class="config-card">
+      <div class="config-card-head"><span class="config-card-num">02</span><span class="config-card-title">PROWLARR</span></div>
+      <div class="config-card-body"><span class="config-card-stat">{{ if gt .Tracker.ProwlarrID 0 }}#{{ .Tracker.ProwlarrID }}{{ else }}not pushed{{ end }}</span><span class="config-card-hint">indexer settings and push</span></div>
+      <div class="config-card-arrow">→</div>
+    </a>
+    {{ end }}
+    {{ if .AutobrrEnabled }}
+    <a href="/tracker/{{ .TrackerIdx }}/config/autobrr" class="config-card">
+      <div class="config-card-head"><span class="config-card-num">03</span><span class="config-card-title">AUTOBRR</span></div>
+      <div class="config-card-body"><span class="config-card-stat">{{ if gt .Tracker.AutobrrID 0 }}#{{ .Tracker.AutobrrID }}{{ else }}not linked{{ end }}</span><span class="config-card-hint">linking controls and IRC status</span></div>
+      <div class="config-card-arrow">→</div>
+    </a>
+    {{ end }}
+  </div>
+</main>
+{{ end }}

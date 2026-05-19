@@ -1,7 +1,6 @@
 {{ define "prowlarr_nav" }}
 <nav class="prowlarr-subnav">
-  <a href="/config/prowlarr" class="prowlarr-subnav-link {{ if eq .ActiveTab "settings" }}is-active{{ end }}">SETTINGS</a>
-  <a href="/config/prowlarr/import" class="prowlarr-subnav-link {{ if eq .ActiveTab "import" }}is-active{{ end }}">IMPORT</a>
-  <a href="/config/prowlarr/sync" class="prowlarr-subnav-link {{ if eq .ActiveTab "sync" }}is-active{{ end }}">SYNC</a>
+  <a href="/config/integrations/prowlarr" class="prowlarr-subnav-link {{ if eq .ActiveTab "settings" }}is-active{{ end }}">SETTINGS</a>
+  <a href="/config/integrations/prowlarr/import" class="prowlarr-subnav-link {{ if eq .ActiveTab "import" }}is-active{{ end }}">IMPORT</a>
 </nav>
 {{ end }}

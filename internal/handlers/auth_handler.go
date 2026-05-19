@@ -88,7 +88,7 @@ func (h *Handler) setupSubmit(w http.ResponseWriter, r *http.Request) {
 	// Forward straight to the network page so the user immediately
 	// reviews/expands the bootstrapped /32 allowlist. The
 	// networkConfirmedGuard locks them on that page until first save.
-	http.Redirect(w, r, "/config/network", http.StatusSeeOther)
+	http.Redirect(w, r, "/config/app/network", http.StatusSeeOther)
 }
 
 // validateSetupInput enforces the minimal password policy. Returning

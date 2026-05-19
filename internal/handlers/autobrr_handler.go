@@ -18,8 +18,8 @@ import (
 // not manage filters, releases, IRC networks, or any other Autobrr feature.
 
 const (
-	pathConfigAutobrr = "/config/autobrr"
-	pathAutobrrImport = "/config/autobrr/import"
+	pathConfigAutobrr = "/config/integrations/autobrr"
+	pathAutobrrImport = "/config/integrations/autobrr/import"
 )
 
 // ── settings page ──────────────────────────────────────────────────
@@ -44,7 +44,7 @@ func (h *Handler) configAutobrrPage(w http.ResponseWriter, r *http.Request) {
 		FlashError:   r.URL.Query().Get("err"),
 		FlashSuccess: r.URL.Query().Get("ok"),
 		ActiveTab:    "settings",
-		Section:      "autobrr",
+		Section:      "integrations",
 	})
 }
 
@@ -124,16 +124,17 @@ func (h *Handler) configAutobrrDisable(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) configTrackerAutobrrAdd(w http.ResponseWriter, r *http.Request) {
 	idx, cfg, ok := h.trackerIndex(r)
 	if !ok {
-		flash(w, r, pathConfigTrackers, "", "invalid tracker index")
+		flash(w, r, "/", "", "invalid tracker index")
 		return
 	}
+	basePath := trackerConfigPath(idx) + "/autobrr"
 	entry := cfg.Trackers[idx]
 	if entry.TrackerURL == "" || entry.APIKey == "" {
-		flash(w, r, pathConfigTrackers, "", entry.Name+": set URL and API key first.")
+		flash(w, r, basePath, "", entry.Name+": set URL and API key first.")
 		return
 	}
 	if !cfg.AutobrrEnabled || cfg.AutobrrURL == "" || cfg.AutobrrAPIKey == "" {
-		flash(w, r, pathConfigTrackers, "", "Autobrr integration is not configured.")
+		flash(w, r, basePath, "", "Autobrr integration is not configured.")
 		return
 	}
 
@@ -143,7 +144,7 @@ func (h *Handler) configTrackerAutobrrAdd(w http.ResponseWriter, r *http.Request
 	// rather than creating a duplicate.
 	existing, err := client.IndexerByURL(entry.TrackerURL)
 	if err != nil {
-		flash(w, r, pathConfigTrackers, "", "Autobrr indexer lookup failed: "+err.Error())
+		flash(w, r, basePath, "", "Autobrr indexer lookup failed: "+err.Error())
 		return
 	}
 
@@ -157,7 +158,7 @@ func (h *Handler) configTrackerAutobrrAdd(w http.ResponseWriter, r *http.Request
 	} else {
 		schema, err := client.SchemaForURL(entry.TrackerURL)
 		if err != nil {
-			flash(w, r, pathConfigTrackers, "", "Autobrr schema lookup failed: "+err.Error())
+			flash(w, r, basePath, "", "Autobrr schema lookup failed: "+err.Error())
 			return
 		}
 		settings := h.autobrrSettingsForNew(entry, *schema)
@@ -168,7 +169,7 @@ func (h *Handler) configTrackerAutobrrAdd(w http.ResponseWriter, r *http.Request
 			added, err = client.AddIndexer(*schema, entry.TrackerURL, entry.APIKey)
 		}
 		if err != nil {
-			flash(w, r, pathConfigTrackers, "", "Autobrr add failed: "+err.Error())
+			flash(w, r, basePath, "", "Autobrr add failed: "+err.Error())
 			return
 		}
 		linked = added
@@ -186,11 +187,11 @@ func (h *Handler) configTrackerAutobrrAdd(w http.ResponseWriter, r *http.Request
 	cfg.Trackers[idx].AutobrrEnabled = linked.Enabled
 	cfg.Trackers[idx].AutobrrSettings = linkedSettings
 	if err := h.store.Save(cfg); err != nil {
-		flash(w, r, pathConfigTrackers, "", "Save failed: "+err.Error())
+		flash(w, r, basePath, "", "Save failed: "+err.Error())
 		return
 	}
 	h.log.Info("CONFIG", fmt.Sprintf("%s %q in Autobrr (id=%d)", action, entry.Name, linked.ID))
-	flash(w, r, pathConfigTrackers, entry.Name+" "+action+" Autobrr.", "")
+	flash(w, r, basePath, entry.Name+" "+action+" Autobrr.", "")
 }
 
 // configTrackerAutobrrToggle flips Autobrr's enabled flag for this indexer
@@ -198,24 +199,25 @@ func (h *Handler) configTrackerAutobrrAdd(w http.ResponseWriter, r *http.Request
 func (h *Handler) configTrackerAutobrrToggle(w http.ResponseWriter, r *http.Request) {
 	idx, cfg, ok := h.trackerIndex(r)
 	if !ok {
-		flash(w, r, pathConfigTrackers, "", "invalid tracker index")
+		flash(w, r, "/", "", "invalid tracker index")
 		return
 	}
+	basePath := trackerConfigPath(idx) + "/autobrr"
 	entry := cfg.Trackers[idx]
 	if entry.AutobrrID == 0 {
-		flash(w, r, pathConfigTrackers, "", entry.Name+" is not in Autobrr.")
+		flash(w, r, basePath, "", entry.Name+" is not in Autobrr.")
 		return
 	}
 
 	client := autobrr.New(cfg.AutobrrURL, cfg.AutobrrAPIKey, h.log)
 	if err := client.SetEnabled(int64(entry.AutobrrID), !entry.AutobrrEnabled); err != nil {
-		flash(w, r, pathConfigTrackers, "", "Autobrr update failed: "+err.Error())
+		flash(w, r, basePath, "", "Autobrr update failed: "+err.Error())
 		return
 	}
 
 	cfg.Trackers[idx].AutobrrEnabled = !entry.AutobrrEnabled
 	if err := h.store.Save(cfg); err != nil {
-		flash(w, r, pathConfigTrackers, "", "Save failed: "+err.Error())
+		flash(w, r, basePath, "", "Save failed: "+err.Error())
 		return
 	}
 	status := "disabled"
@@ -223,7 +225,7 @@ func (h *Handler) configTrackerAutobrrToggle(w http.ResponseWriter, r *http.Requ
 		status = "enabled"
 	}
 	h.log.Info("CONFIG", fmt.Sprintf("%s %s in Autobrr", entry.Name, status))
-	flash(w, r, pathConfigTrackers, entry.Name+" "+status+" in Autobrr.", "")
+	flash(w, r, basePath, entry.Name+" "+status+" in Autobrr.", "")
 }
 
 // configTrackerAutobrrRemove deletes the indexer in Autobrr and clears the
@@ -231,17 +233,18 @@ func (h *Handler) configTrackerAutobrrToggle(w http.ResponseWriter, r *http.Requ
 func (h *Handler) configTrackerAutobrrRemove(w http.ResponseWriter, r *http.Request) {
 	idx, cfg, ok := h.trackerIndex(r)
 	if !ok {
-		flash(w, r, pathConfigTrackers, "", "invalid tracker index")
+		flash(w, r, "/", "", "invalid tracker index")
 		return
 	}
+	basePath := trackerConfigPath(idx) + "/autobrr"
 	entry := cfg.Trackers[idx]
 	if entry.AutobrrID == 0 {
-		flash(w, r, pathConfigTrackers, "", entry.Name+" is not in Autobrr.")
+		flash(w, r, basePath, "", entry.Name+" is not in Autobrr.")
 		return
 	}
 	client := autobrr.New(cfg.AutobrrURL, cfg.AutobrrAPIKey, h.log)
 	if err := client.DeleteIndexer(int64(entry.AutobrrID)); err != nil {
-		flash(w, r, pathConfigTrackers, "", "Autobrr remove failed: "+err.Error())
+		flash(w, r, basePath, "", "Autobrr remove failed: "+err.Error())
 		return
 	}
 
@@ -249,11 +252,11 @@ func (h *Handler) configTrackerAutobrrRemove(w http.ResponseWriter, r *http.Requ
 	cfg.Trackers[idx].AutobrrIdentifier = ""
 	cfg.Trackers[idx].AutobrrEnabled = false
 	if err := h.store.Save(cfg); err != nil {
-		flash(w, r, pathConfigTrackers, "", "Save failed: "+err.Error())
+		flash(w, r, basePath, "", "Save failed: "+err.Error())
 		return
 	}
 	h.log.Info("CONFIG", fmt.Sprintf("Removed %q from Autobrr", entry.Name))
-	flash(w, r, pathConfigTrackers, entry.Name+" removed from Autobrr.", "")
+	flash(w, r, basePath, entry.Name+" removed from Autobrr.", "")
 }
 
 // ── import flow ────────────────────────────────────────────────────
@@ -291,7 +294,7 @@ func (h *Handler) importAutobrrPage(w http.ResponseWriter, r *http.Request) {
 		FlashError:   r.URL.Query().Get("err"),
 		FlashSuccess: r.URL.Query().Get("ok"),
 		ActiveTab:    "import",
-		Section:      "autobrr",
+		Section:      "integrations",
 	}
 	if !cfg.AutobrrEnabled || cfg.AutobrrURL == "" || cfg.AutobrrAPIKey == "" {
 		data.LoadError = "Autobrr integration is not configured."

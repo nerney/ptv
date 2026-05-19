@@ -4,7 +4,7 @@
   <div class="card-head">
     <h2 class="tracker-name">
       {{ if .FaviconDataURI }}<img class="tracker-favicon" src="{{ .FaviconDataURI }}" alt="" loading="lazy">{{ end }}
-      {{ .Name }}
+      <a href="{{ .TrackerConfigURL }}" class="tracker-title-link">{{ .Name }}</a>
     </h2>
     <div class="card-badges">
       {{ if gt .ProwlarrID 0 }}
@@ -24,11 +24,11 @@
           <span class="prowlarr-badge prowlarr-off" title="In Autobrr — disabled">○ AUTOBRR</span>
         {{ end }}
         {{ if eq .AutobrrIRCStatus "connected" }}
-          <span class="irc-dot irc-connected" title="IRC connected">●</span>
+          <span class="irc-badge irc-connected" title="Autobrr IRC network connected">IRC CONNECTED</span>
         {{ else if eq .AutobrrIRCStatus "disconnected" }}
-          <span class="irc-dot irc-disconnected" title="IRC disconnected">●</span>
+          <span class="irc-badge irc-disconnected" title="Autobrr IRC network disconnected">IRC DISCONNECTED</span>
         {{ else if eq .AutobrrIRCStatus "unknown" }}
-          <span class="irc-dot irc-unknown" title="IRC status unknown — no matching network in Autobrr">?</span>
+          <span class="irc-badge irc-unknown" title="No matching Autobrr IRC network found">IRC UNKNOWN</span>
         {{ end }}
       {{ else }}
         <span class="prowlarr-badge prowlarr-none" title="Not in Autobrr">— AUTOBRR</span>
@@ -39,7 +39,7 @@
   {{ if eq .APIKey "" }}
     <div class="card-unconfigured">
       <span class="unconfigured-label">CONFIG REQUIRED</span>
-      <a href="/config" class="unconfigured-link">→ set credentials</a>
+      <a href="{{ .TrackerConfigURL }}" class="unconfigured-link">→ set credentials</a>
     </div>
   {{ else if ne .SyncError "" }}
     <div class="card-error">

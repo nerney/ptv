@@ -1,0 +1,59 @@
+{{ define "content" }}
+<header class="site-header">
+  <div class="header-brand">
+    <a href="/" class="brand-link">
+      <span class="brand-back">←</span>
+      <img src="/static/icon.png" alt="" class="brand-icon">
+      <span class="brand-mark">PTV</span>
+      <span class="brand-sep">—</span>
+      <span class="brand-sub">INTEGRATIONS</span>
+    </a>
+  </div>
+</header>
+
+{{ template "config_nav" . }}
+<div class="page-rule"></div>
+
+<main class="config-main">
+  {{ if .FlashError }}<div class="alert alert-error"><span class="alert-dot">●</span>{{ .FlashError }}</div>{{ end }}
+  {{ if .FlashSuccess }}<div class="alert alert-ok"><span class="alert-dot">●</span>{{ .FlashSuccess }}</div>{{ end }}
+
+  <div class="config-cards">
+    <a href="/config/integrations/prowlarr" class="config-card">
+      <div class="config-card-head">
+        <span class="config-card-num">01</span>
+        <span class="config-card-title">PROWLARR</span>
+      </div>
+      <div class="config-card-body">
+        {{ if and .Config.ProwlarrEnabled .Config.ProwlarrAPIKey }}
+          <span class="config-card-stat">● connected</span>
+        {{ else if .Config.ProwlarrAPIKey }}
+          <span class="config-card-stat muted">○ disabled</span>
+        {{ else }}
+          <span class="config-card-stat muted">not configured</span>
+        {{ end }}
+        <span class="config-card-hint">global connection and import</span>
+      </div>
+      <div class="config-card-arrow">→</div>
+    </a>
+
+    <a href="/config/integrations/autobrr" class="config-card">
+      <div class="config-card-head">
+        <span class="config-card-num">02</span>
+        <span class="config-card-title">AUTOBRR</span>
+      </div>
+      <div class="config-card-body">
+        {{ if and .Config.AutobrrEnabled .Config.AutobrrAPIKey }}
+          <span class="config-card-stat">● connected</span>
+        {{ else if .Config.AutobrrAPIKey }}
+          <span class="config-card-stat muted">○ disabled</span>
+        {{ else }}
+          <span class="config-card-stat muted">not configured</span>
+        {{ end }}
+        <span class="config-card-hint">global connection, import, IRC status</span>
+      </div>
+      <div class="config-card-arrow">→</div>
+    </a>
+  </div>
+</main>
+{{ end }}

@@ -20,7 +20,7 @@ import (
 // flags that row in the redirect-to-home flash. This matches the spec:
 // "imported with empty stats" is a valid state.
 
-const pathImport = "/config/prowlarr/import"
+const pathImport = "/config/integrations/prowlarr/import"
 
 type importPageData struct {
 	ProwlarrEnabled bool
@@ -41,7 +41,7 @@ func (h *Handler) importPage(w http.ResponseWriter, r *http.Request) {
 		FlashError:   r.URL.Query().Get("err"),
 		FlashSuccess: r.URL.Query().Get("ok"),
 		ActiveTab:    "import",
-		Section:      "prowlarr",
+		Section:      "integrations",
 	}
 	data.ProwlarrEnabled = cfg.ProwlarrEnabled && cfg.ProwlarrURL != "" && cfg.ProwlarrAPIKey != ""
 

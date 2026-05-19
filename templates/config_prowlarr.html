@@ -44,7 +44,7 @@
         </summary>
         <template>
         <div class="prowlarr-pill-body">
-          <form method="POST" action="/config/prowlarr" class="config-form">
+          <form method="POST" action="/config/integrations/prowlarr" class="config-form">
             <div class="config-row">
               <div class="field">
                 <label class="field-label">URL</label>
@@ -62,7 +62,7 @@
               </div>
             </div>
           </form>
-          <form method="POST" action="/config/prowlarr/disable" class="inline-form prowlarr-disable">
+          <form method="POST" action="/config/integrations/prowlarr/disable" class="inline-form prowlarr-disable">
             <button type="submit" class="btn-sm btn-ghost">DISABLE INTEGRATION</button>
           </form>
         </div>
@@ -70,8 +70,7 @@
       </details>
 
       <div class="prowlarr-quick-links">
-        <a href="/config/prowlarr/import" class="link-action">→ IMPORT INDEXERS</a>
-        <a href="/config/prowlarr/sync" class="link-action">→ SYNC TO PROWLARR</a>
+        <a href="/config/integrations/prowlarr/import" class="link-action">→ IMPORT INDEXERS</a>
       </div>
 
     {{ else if and .Config.ProwlarrEnabled (not .Config.ProwlarrAPIKey) }}
@@ -79,7 +78,7 @@
       <h2 class="config-section-title">SETTINGS</h2>
       <div class="section-rule"></div>
       <p class="config-hint">Connect to your Prowlarr instance.</p>
-      <form method="POST" action="/config/prowlarr" class="config-form">
+      <form method="POST" action="/config/integrations/prowlarr" class="config-form">
         <div class="config-row">
           <div class="field">
             <label class="field-label">URL</label>
@@ -97,7 +96,7 @@
           </div>
         </div>
       </form>
-      <form method="POST" action="/config/prowlarr/disable" class="inline-form prowlarr-disable">
+      <form method="POST" action="/config/integrations/prowlarr/disable" class="inline-form prowlarr-disable">
         <button type="submit" class="btn-sm btn-ghost">CANCEL</button>
       </form>
 
@@ -107,7 +106,7 @@
         <span class="pill-mute">○</span>
         <span class="pill-text muted">PROWLARR DISABLED</span>
         <span class="pill-sub muted">credentials preserved</span>
-        <form method="POST" action="/config/prowlarr/enable" class="inline-form">
+        <form method="POST" action="/config/integrations/prowlarr/enable" class="inline-form">
           <button type="submit" class="btn-sm btn-ghost">RE-ENABLE</button>
         </form>
       </div>
@@ -117,7 +116,7 @@
       <h2 class="config-section-title">PROWLARR INTEGRATION</h2>
       <div class="section-rule"></div>
       <p class="config-hint">Prowlarr is optional. It lets you import already-configured indexers and push your tracker config out to Prowlarr.</p>
-      <form method="POST" action="/config/prowlarr/enable" class="inline-form">
+      <form method="POST" action="/config/integrations/prowlarr/enable" class="inline-form">
         <button type="submit" class="btn-primary">ENABLE PROWLARR INTEGRATION →</button>
       </form>
     {{ end }}

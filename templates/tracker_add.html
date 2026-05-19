@@ -1,0 +1,78 @@
+{{ define "content" }}
+<header class="site-header">
+  <div class="header-brand">
+    <a href="/" class="brand-link">
+      <span class="brand-back">←</span>
+      <img src="/static/icon.png" alt="" class="brand-icon">
+      <span class="brand-mark">PTV</span>
+      <span class="brand-sep">—</span>
+      <span class="brand-sub">ADD TRACKER</span>
+    </a>
+  </div>
+</header>
+
+<div class="page-rule"></div>
+
+<main class="config-main">
+  {{ if .FlashError }}<div class="alert alert-error"><span class="alert-dot">●</span>{{ .FlashError }}</div>{{ end }}
+  {{ if .FlashSuccess }}<div class="alert alert-ok"><span class="alert-dot">●</span>{{ .FlashSuccess }}</div>{{ end }}
+  {{ if .LoadError }}<div class="alert alert-warn"><span class="alert-dot">⚠</span>{{ .LoadError }}</div>{{ end }}
+
+  <section class="config-section">
+    <h2 class="config-section-title">AVAILABLE TRACKERS</h2>
+    <div class="section-rule"></div>
+
+    {{ if .Rows }}
+    <div class="tracker-list">
+      {{ range .Rows }}
+      <details class="tracker-row is-available" data-lazy>
+        <summary class="tracker-row-summary">
+          <span class="row-state row-state-available">○</span>
+          <span class="row-name">{{ .Name }}</span>
+          <span class="row-tag row-tag-muted">{{ len .URLs }} URL{{ if ne (len .URLs) 1 }}s{{ end }}</span>
+        </summary>
+        <template>
+          <div class="tracker-row-body">
+            <form method="POST" action="/trackers/add" class="config-form">
+              <input type="hidden" name="schema_name" value="{{ .Name }}">
+              <input type="hidden" name="tracker_type" value="{{ .TypeID }}">
+              <div class="config-row">
+                <div class="field field-url-cell">
+                  <label class="field-label">TRACKER URL</label>
+                  {{ if eq (len .URLs) 1 }}
+                    <input type="hidden" name="url" value="{{ index .URLs 0 }}">
+                    <div class="field-authoritative">{{ index .URLs 0 }}</div>
+                  {{ else }}
+                    <select class="field-input field-select" name="url" required>
+                      <option value="" disabled selected>— select base URL —</option>
+                      {{ range .URLs }}<option value="{{ . }}">{{ . }}</option>{{ end }}
+                    </select>
+                  {{ end }}
+                </div>
+                <div class="field">
+                  <label class="field-label">API KEY</label>
+                  <input class="field-input field-token" type="text" name="api_key" placeholder="API key" autocomplete="off" required>
+                </div>
+                <div class="field field--action">
+                  <label class="field-label">&nbsp;</label>
+                  <button type="submit" class="btn-primary btn-sm">VALIDATE &amp; ADD →</button>
+                </div>
+              </div>
+              <div class="catalog-force-row">
+                <button type="submit" name="override" value="true" class="btn-sm btn-ghost"
+                  onclick="return confirm('Add {{ .Name }} without validating against /api/user?\n\nThe tracker will appear in your dashboard but stats will be empty until credentials are validated.')">
+                  FORCE ADD
+                </button>
+              </div>
+            </form>
+          </div>
+        </template>
+      </details>
+      {{ end }}
+    </div>
+    {{ else }}
+    <p class="config-empty">No available trackers.</p>
+    {{ end }}
+  </section>
+</main>
+{{ end }}

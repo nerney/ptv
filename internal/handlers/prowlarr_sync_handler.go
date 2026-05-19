@@ -17,7 +17,7 @@ import (
 // this page pushes its configured trackers into Prowlarr (creates
 // missing ones, updates drifted ones, leaves synced ones alone).
 
-const pathProwlarrSync = "/config/prowlarr/sync"
+const pathProwlarrSync = "/sync/prowlarr"
 
 // syncState classifies each managed tracker for the comparison view.
 type syncState string
@@ -64,7 +64,7 @@ func (h *Handler) prowlarrSyncPage(w http.ResponseWriter, r *http.Request) {
 		FlashError:   r.URL.Query().Get("err"),
 		FlashSuccess: r.URL.Query().Get("ok"),
 		ActiveTab:    "sync",
-		Section:      "prowlarr",
+		Section:      "",
 	}
 	data.ProwlarrEnabled = cfg.ProwlarrEnabled && cfg.ProwlarrURL != "" && cfg.ProwlarrAPIKey != ""
 

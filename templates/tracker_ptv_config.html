@@ -1,0 +1,54 @@
+{{ define "content" }}
+<header class="site-header">
+  <div class="header-brand">
+    <a href="/tracker/{{ .TrackerIdx }}/config" class="brand-link">
+      <span class="brand-back">←</span>
+      <img src="/static/icon.png" alt="" class="brand-icon">
+      <span class="brand-mark">PTV</span>
+      <span class="brand-sep">—</span>
+      <span class="brand-sub">{{ .Tracker.Name }} / PTV</span>
+    </a>
+  </div>
+</header>
+{{ template "tracker_nav" . }}
+<div class="page-rule"></div>
+<main class="config-main">
+  {{ if .FlashError }}<div class="alert alert-error"><span class="alert-dot">●</span>{{ .FlashError }}</div>{{ end }}
+  {{ if .FlashSuccess }}<div class="alert alert-ok"><span class="alert-dot">●</span>{{ .FlashSuccess }}</div>{{ end }}
+  <section class="config-section">
+    <h2 class="config-section-title">{{ .Tracker.Name }}<span class="muted"> — PTV config</span></h2>
+    <div class="section-rule"></div>
+    <form method="POST" action="/tracker/{{ .TrackerIdx }}/config/ptv" class="config-form">
+      <div class="config-row">
+        <div class="field">
+          <label class="field-label">URL</label>
+          {{ $current := .Tracker.TrackerURL }}
+          {{ if gt (len .URLs) 1 }}
+          <select class="field-input field-select" name="url">
+            {{ range .URLs }}<option value="{{ . }}" {{ if eq . $current }}selected{{ end }}>{{ . }}</option>{{ end }}
+          </select>
+          {{ else if eq (len .URLs) 1 }}
+          <input type="hidden" name="url" value="{{ index .URLs 0 }}">
+          <div class="field-authoritative">{{ index .URLs 0 }}</div>
+          {{ else }}
+          <input class="field-input" type="url" name="url" value="{{ $current }}" autocomplete="off">
+          {{ end }}
+        </div>
+        <div class="field">
+          <label class="field-label">API KEY</label>
+          <input class="field-input field-token" type="text" name="api_key" placeholder="set — enter new key to replace" autocomplete="off">
+        </div>
+      </div>
+      <div class="import-submit-row">
+        <a href="/tracker/{{ .TrackerIdx }}/config" class="btn-sm btn-ghost">CANCEL</a>
+        <button type="submit" class="btn-primary">VALIDATE &amp; SAVE →</button>
+        <button type="submit" name="override" value="true" class="btn-sm btn-ghost"
+          onclick="return confirm('Save {{ .Tracker.Name }} credentials without validating?\n\nStats will be cleared until validation succeeds.')">FORCE SAVE</button>
+      </div>
+    </form>
+    <form method="POST" action="/tracker/{{ .TrackerIdx }}/config/delete" class="inline-form prowlarr-disable">
+      <button type="submit" class="btn-sm btn-danger" onclick="return confirm('Remove {{ .Tracker.Name }} from dashboard?')">DELETE TRACKER</button>
+    </form>
+  </section>
+</main>
+{{ end }}

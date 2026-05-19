@@ -1,0 +1,52 @@
+{{ define "content" }}
+<header class="site-header">
+  <div class="header-brand">
+    <a href="/tracker/{{ .TrackerIdx }}/config" class="brand-link">
+      <span class="brand-back">←</span>
+      <img src="/static/icon.png" alt="" class="brand-icon">
+      <span class="brand-mark">PTV</span>
+      <span class="brand-sep">—</span>
+      <span class="brand-sub">{{ .Tracker.Name }} / AUTOBRR</span>
+    </a>
+  </div>
+</header>
+{{ template "tracker_nav" . }}
+<div class="page-rule"></div>
+<main class="config-main">
+  {{ if .FlashError }}<div class="alert alert-error"><span class="alert-dot">●</span>{{ .FlashError }}</div>{{ end }}
+  {{ if .FlashSuccess }}<div class="alert alert-ok"><span class="alert-dot">●</span>{{ .FlashSuccess }}</div>{{ end }}
+
+  {{ if not .AutobrrEnabled }}
+  <section class="config-section">
+    <h2 class="config-section-title">AUTOBRR REQUIRED</h2>
+    <div class="section-rule"></div>
+    <p class="config-hint">Autobrr is not enabled.</p>
+    <p class="config-hint"><a href="/config/integrations/autobrr" class="link-action">→ CONFIGURE AUTOBRR</a></p>
+  </section>
+  {{ else }}
+  <section class="config-section">
+    <h2 class="config-section-title">{{ .Tracker.Name }}<span class="muted"> — Autobrr config</span></h2>
+    <div class="section-rule"></div>
+    <div class="tracker-row-meta">
+      <span class="meta-label">AUTOBRR</span>
+      <span class="meta-val">{{ if gt .Tracker.AutobrrID 0 }}#{{ .Tracker.AutobrrID }} — {{ if .Tracker.AutobrrEnabled }}enabled{{ else }}disabled{{ end }}{{ else }}not linked{{ end }}</span>
+    </div>
+    <div class="import-submit-row">
+      <a href="/tracker/{{ .TrackerIdx }}/config" class="btn-sm btn-ghost">CANCEL</a>
+      {{ if gt .Tracker.AutobrrID 0 }}
+      <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/autobrr/toggle" class="inline-form">
+        <button type="submit" class="btn-sm btn-ghost">{{ if .Tracker.AutobrrEnabled }}DISABLE IN AUTOBRR{{ else }}ENABLE IN AUTOBRR{{ end }}</button>
+      </form>
+      <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/autobrr/remove" class="inline-form">
+        <button type="submit" class="btn-sm btn-danger">REMOVE FROM AUTOBRR</button>
+      </form>
+      {{ else }}
+      <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/autobrr/add" class="inline-form">
+        <button type="submit" class="btn-primary">ADD TO AUTOBRR →</button>
+      </form>
+      {{ end }}
+    </div>
+  </section>
+  {{ end }}
+</main>
+{{ end }}

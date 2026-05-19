@@ -18,6 +18,12 @@
       <span class="btn-arrow">→</span>
     </button>
     {{ end }}
+    {{ if .ProwlarrEnabled }}
+    <a href="/sync/prowlarr" class="btn-ghost">SYNC PROWLARR</a>
+    {{ end }}
+    {{ if .AutobrrEnabled }}
+    <a href="/sync/autobrr" class="btn-ghost">SYNC AUTOBRR</a>
+    {{ end }}
     <a href="/config" class="btn-ghost">CONFIG</a>
     <form method="POST" action="/logout" class="inline-form header-logout">
       <button type="submit" class="btn-ghost">LOGOUT</button>
@@ -40,6 +46,7 @@
 
 <div class="page-bar">
   <span class="section-label">TRACKERS<span class="section-count"> — {{ len .Trackers }}</span></span>
+  <a href="/trackers/add" class="sort-btn">ADD TRACKER</a>
   {{ if .Trackers }}
   <div id="sync-status" class="sync-status{{ if isStale .LastSync }} is-stale{{ end }}">
     {{ if .LastSync }}
@@ -79,7 +86,7 @@
   {{ if not .Trackers }}
   <div class="empty-state">
     <p class="empty-state-title">No trackers configured yet.</p>
-    <p class="empty-state-action"><a href="/config/trackers" class="link-action">→ ADD TRACKERS</a></p>
+    <p class="empty-state-action"><a href="/trackers/add" class="link-action">→ ADD TRACKERS</a></p>
   </div>
   {{ end }}
 </main>

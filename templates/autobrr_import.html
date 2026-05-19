@@ -38,7 +38,7 @@
     <h2 class="config-section-title">AUTOBRR REQUIRED</h2>
     <div class="section-rule"></div>
     <p class="config-hint">Autobrr is not enabled.</p>
-    <p class="config-hint"><a href="/config/autobrr" class="link-action">→ CONFIGURE AUTOBRR</a></p>
+    <p class="config-hint"><a href="/config/integrations/autobrr" class="link-action">→ CONFIGURE AUTOBRR</a></p>
   </section>
   {{ else }}
 
@@ -51,7 +51,7 @@
     {{ if .Importable }}
     <p class="config-hint">Select managed trackers to link to their existing Autobrr indexers. Linking enables the IRC connection status indicator on each card.</p>
 
-    <form method="POST" action="/config/autobrr/import" class="import-form" id="import-form">
+    <form method="POST" action="/config/integrations/autobrr/import" class="import-form" id="import-form">
       <label class="import-row import-row-check import-row-all">
         <input type="checkbox" id="import-check-all" class="import-check">
         <span class="tracker-select-name">SELECT ALL</span>

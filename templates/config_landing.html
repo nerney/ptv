@@ -19,101 +19,37 @@
 <div class="page-rule"></div>
 
 <main class="config-main">
-
-  {{ if .FlashError }}
-  <div class="alert alert-error">
-    <span class="alert-dot">●</span>{{ .FlashError }}
-  </div>
-  {{ end }}
-  {{ if .FlashSuccess }}
-  <div class="alert alert-ok">
-    <span class="alert-dot">●</span>{{ .FlashSuccess }}
-  </div>
-  {{ end }}
-
-  {{ if eq .DefsState 1 }}
-  <div class="alert alert-info">
-    <span class="alert-dot">◌</span>Updating indexer definitions from GitHub&hellip;
-  </div>
-  {{ else if eq .DefsState 3 }}
-  <div class="alert alert-warn">
-    <span class="alert-dot">⚠</span>Definitions pull failed — using stale local copy. {{ .DefsMsg }}
-  </div>
-  {{ else if eq .DefsState 4 }}
-  <div class="alert alert-error">
-    <span class="alert-dot">●</span>Indexer definitions unavailable — catalog operations are blocked. {{ .DefsMsg }}
-  </div>
-  {{ end }}
+  {{ if .FlashError }}<div class="alert alert-error"><span class="alert-dot">●</span>{{ .FlashError }}</div>{{ end }}
+  {{ if .FlashSuccess }}<div class="alert alert-ok"><span class="alert-dot">●</span>{{ .FlashSuccess }}</div>{{ end }}
 
   <div class="config-cards">
-
-    <a href="/config/trackers" class="config-card">
+    <a href="/config/app/network" class="config-card">
       <div class="config-card-head">
         <span class="config-card-num">01</span>
-        <span class="config-card-title">TRACKERS</span>
+        <span class="config-card-title">APP CONFIG</span>
       </div>
       <div class="config-card-body">
-        {{ if .HasTrackers }}
-          <span class="config-card-stat">{{ .TrackerCount }} configured</span>
-        {{ else }}
-          <span class="config-card-stat muted">none configured</span>
-        {{ end }}
-        <span class="config-card-hint">add, edit, or remove trackers</span>
+        <span class="config-card-stat">Network</span>
+        <span class="config-card-hint">host allowlist and app-level settings</span>
       </div>
       <div class="config-card-arrow">→</div>
     </a>
 
-    <a href="/config/prowlarr" class="config-card">
+    <a href="/config/integrations" class="config-card">
       <div class="config-card-head">
         <span class="config-card-num">02</span>
-        <span class="config-card-title">PROWLARR</span>
-        <span class="config-card-tag muted">optional</span>
+        <span class="config-card-title">INTEGRATIONS</span>
       </div>
       <div class="config-card-body">
-        {{ if and .ProwlarrEnabled .ProwlarrSet }}
-          <span class="config-card-stat">● connected</span>
-        {{ else if .ProwlarrSet }}
-          <span class="config-card-stat muted">○ disabled</span>
-        {{ else }}
-          <span class="config-card-stat muted">not configured</span>
-        {{ end }}
-        <span class="config-card-hint">connect, import, and sync indexers</span>
+        <span class="config-card-stat">
+          {{ if .ProwlarrEnabled }}Prowlarr on{{ else }}Prowlarr off{{ end }}
+          /
+          {{ if .AutobrrEnabled }}Autobrr on{{ else }}Autobrr off{{ end }}
+        </span>
+        <span class="config-card-hint">global integration settings and imports</span>
       </div>
       <div class="config-card-arrow">→</div>
     </a>
-
-    <a href="/config/autobrr" class="config-card">
-      <div class="config-card-head">
-        <span class="config-card-num">03</span>
-        <span class="config-card-title">AUTOBRR</span>
-        <span class="config-card-tag muted">optional</span>
-      </div>
-      <div class="config-card-body">
-        {{ if and .AutobrrEnabled .AutobrrSet }}
-          <span class="config-card-stat">● connected</span>
-        {{ else if .AutobrrSet }}
-          <span class="config-card-stat muted">○ disabled</span>
-        {{ else }}
-          <span class="config-card-stat muted">not configured</span>
-        {{ end }}
-        <span class="config-card-hint">connect, import, IRC indicator</span>
-      </div>
-      <div class="config-card-arrow">→</div>
-    </a>
-
-    <a href="/config/network" class="config-card">
-      <div class="config-card-head">
-        <span class="config-card-num">04</span>
-        <span class="config-card-title">NETWORK</span>
-      </div>
-      <div class="config-card-body">
-        <span class="config-card-stat">IP allowlist</span>
-        <span class="config-card-hint">LAN CIDRs and reverse-proxy host</span>
-      </div>
-      <div class="config-card-arrow">→</div>
-    </a>
-
   </div>
-
 </main>
 {{ end }}

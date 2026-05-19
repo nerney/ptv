@@ -26,7 +26,9 @@ const (
 type trackerCardView struct {
 	*config.TrackerEntry
 	AutobrrIRCStatus  string
+	TrackerConfigURL  string
 	ProwlarrConfigURL string
+	AutobrrConfigURL  string
 }
 
 // buildTrackerViews wraps every configured tracker in a render view and,
@@ -36,9 +38,15 @@ type trackerCardView struct {
 func (h *Handler) buildTrackerViews(cfg config.Config) []*trackerCardView {
 	views := make([]*trackerCardView, len(cfg.Trackers))
 	for i, t := range cfg.Trackers {
-		views[i] = &trackerCardView{TrackerEntry: t}
+		views[i] = &trackerCardView{
+			TrackerEntry:     t,
+			TrackerConfigURL: "/tracker/" + strconv.Itoa(i) + "/config",
+		}
 		if cfg.ProwlarrEnabled && cfg.ProwlarrURL != "" && cfg.ProwlarrAPIKey != "" && t.DefinitionName != "" {
-			views[i].ProwlarrConfigURL = "/config/tracker/" + strconv.Itoa(i) + "/prowlarr"
+			views[i].ProwlarrConfigURL = "/tracker/" + strconv.Itoa(i) + "/config/prowlarr"
+		}
+		if cfg.AutobrrEnabled && cfg.AutobrrURL != "" && cfg.AutobrrAPIKey != "" && t.DefinitionName != "" {
+			views[i].AutobrrConfigURL = "/tracker/" + strconv.Itoa(i) + "/config/autobrr"
 		}
 	}
 	h.fillAutobrrIRCStatus(cfg, views)

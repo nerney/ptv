@@ -1,0 +1,17 @@
+{{ define "tracker_nav" }}
+<nav class="config-nav">
+  <a href="/" class="config-nav-back">← DASHBOARD</a>
+  <span class="config-nav-sep">/</span>
+  <a href="/tracker/{{ .TrackerIdx }}/config" class="config-nav-link {{ if eq .ActiveTab "overview" }}is-active{{ end }}">OVERVIEW</a>
+  <a href="/tracker/{{ .TrackerIdx }}/config/ptv" class="config-nav-link {{ if eq .ActiveTab "ptv" }}is-active{{ end }}">PTV</a>
+  {{ if .ProwlarrEnabled }}
+  <a href="/tracker/{{ .TrackerIdx }}/config/prowlarr" class="config-nav-link {{ if eq .ActiveTab "prowlarr" }}is-active{{ end }}">PROWLARR</a>
+  {{ end }}
+  {{ if .AutobrrEnabled }}
+  <a href="/tracker/{{ .TrackerIdx }}/config/autobrr" class="config-nav-link {{ if eq .ActiveTab "autobrr" }}is-active{{ end }}">AUTOBRR</a>
+  {{ end }}
+  <form method="POST" action="/logout" class="inline-form config-nav-logout-form">
+    <button type="submit" class="config-nav-logout-btn">LOGOUT</button>
+  </form>
+</nav>
+{{ end }}

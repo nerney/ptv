@@ -1,0 +1,54 @@
+{{ define "content" }}
+<header class="site-header">
+  <div class="header-brand">
+    <a href="/tracker/{{ .TrackerIdx }}/config/prowlarr" class="brand-link">
+      <span class="brand-back">←</span>
+      <img src="/static/icon.png" alt="" class="brand-icon">
+      <span class="brand-mark">PTV</span>
+      <span class="brand-sep">—</span>
+      <span class="brand-sub">{{ .Tracker.Name }} / PROWLARR DIFF</span>
+    </a>
+  </div>
+</header>
+{{ template "tracker_nav" . }}
+<div class="page-rule"></div>
+<main class="config-main">
+  {{ if .FlashError }}<div class="alert alert-error"><span class="alert-dot">●</span>{{ .FlashError }}</div>{{ end }}
+  {{ if .FlashSuccess }}<div class="alert alert-ok"><span class="alert-dot">●</span>{{ .FlashSuccess }}</div>{{ end }}
+
+  {{ if not .ProwlarrEnabled }}
+  <section class="config-section">
+    <h2 class="config-section-title">PROWLARR REQUIRED</h2>
+    <div class="section-rule"></div>
+    <p class="config-hint">Prowlarr is not enabled.</p>
+  </section>
+  {{ else }}
+  <section class="config-section">
+    <h2 class="config-section-title">{{ .Tracker.Name }}<span class="muted"> — pending Prowlarr push</span></h2>
+    <div class="section-rule"></div>
+    {{ if eq .Row.State "synced" }}
+    <p class="config-hint">Dashboard and Prowlarr already match.</p>
+    {{ else if eq .Row.State "new" }}
+    <p class="config-hint">This tracker is not in Prowlarr yet. Pushing will create it.</p>
+    {{ else }}
+    <p class="config-hint">Pushing will overwrite Prowlarr for this indexer with the saved PTV values.</p>
+    {{ if .Row.SchemaError }}
+    <div class="alert alert-warn"><span class="alert-dot">⚠</span>{{ .Row.SchemaError }}</div>
+    {{ else if .Row.DiffFields }}
+    <div class="sync-list">
+      <div class="sync-row sync-row-drift">
+        <span class="sync-row-tag sync-row-tag-drift">DRIFT</span>
+        <span class="sync-row-name">{{ .Tracker.Name }}</span>
+        <span class="muted">fields: {{ range $i, $f := .Row.DiffFields }}{{ if $i }}, {{ end }}{{ $f }}{{ end }}</span>
+      </div>
+    </div>
+    {{ end }}
+    {{ end }}
+    <form method="POST" action="/tracker/{{ .TrackerIdx }}/config/prowlarr/diff" class="import-submit-row">
+      <a href="/tracker/{{ .TrackerIdx }}/config/prowlarr" class="btn-sm btn-ghost">CANCEL</a>
+      {{ if ne .Row.State "synced" }}<button type="submit" class="btn-primary">PUSH TO PROWLARR →</button>{{ end }}
+    </form>
+  </section>
+  {{ end }}
+</main>
+{{ end }}
