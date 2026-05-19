@@ -149,13 +149,14 @@ func (h *Handler) pushTrackerProwlarrConfig(cfg *config.Config, i int, schema pr
 	settings := prowlarr.WithCoreCredentials(schema, t.ProwlarrSettings, t.TrackerURL, t.APIKey)
 	fields := prowlarr.FieldsForPayload(schema, settings)
 	client := prowlarr.New(cfg.ProwlarrURL, cfg.ProwlarrAPIKey, h.log)
+	managedName := prowlarr.ManagedIndexerName(t.Name)
 
 	if t.ProwlarrID != 0 {
 		existing, err := client.GetIndexer(t.ProwlarrID)
 		if err != nil {
 			return err
 		}
-		updated, err := client.UpdateIndexerWithFields(*existing, fields)
+		updated, err := client.UpdateIndexerWithFields(*existing, fields, managedName)
 		if err != nil {
 			return err
 		}
@@ -177,7 +178,7 @@ func (h *Handler) pushTrackerProwlarrConfig(cfg *config.Config, i int, schema pr
 		}
 	}
 	schema = prowlarr.IndexerSchemaForPayload(schema, appProfileID)
-	updated, err := client.AddIndexerWithFields(schema, fields)
+	updated, err := client.AddIndexerWithFields(schema, fields, managedName)
 	if err != nil {
 		return err
 	}

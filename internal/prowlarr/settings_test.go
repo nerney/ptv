@@ -219,3 +219,17 @@ func TestIndexerSchemaForPayloadPreservesValidRootValues(t *testing.T) {
 		t.Fatalf("Priority = %d, want schema value", got.Priority)
 	}
 }
+
+func TestManagedIndexerNameAddsSuffix(t *testing.T) {
+	got := ManagedIndexerName("Example Tracker")
+	if got != "Example Tracker [ptv]" {
+		t.Fatalf("ManagedIndexerName() = %q", got)
+	}
+}
+
+func TestManagedIndexerNamePreservesExistingSuffix(t *testing.T) {
+	got := ManagedIndexerName("Example Tracker [PTV]")
+	if got != "Example Tracker [PTV]" {
+		t.Fatalf("ManagedIndexerName() = %q", got)
+	}
+}

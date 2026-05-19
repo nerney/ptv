@@ -235,12 +235,15 @@ func (c *Client) SchemaByName(name string) (*IndexerSchema, error) {
 
 func (c *Client) AddIndexer(schema IndexerSchema, trackerURL, apiKey string) (*Indexer, error) {
 	fields := populateFields(schema.Fields, trackerURL, apiKey)
-	return c.AddIndexerWithFields(schema, fields)
+	return c.AddIndexerWithFields(schema, fields, schema.Name)
 }
 
-func (c *Client) AddIndexerWithFields(schema IndexerSchema, fields []SchemaField) (*Indexer, error) {
+func (c *Client) AddIndexerWithFields(schema IndexerSchema, fields []SchemaField, name string) (*Indexer, error) {
+	if strings.TrimSpace(name) == "" {
+		name = schema.Name
+	}
 	payload := map[string]interface{}{
-		"name":               schema.Name,
+		"name":               name,
 		"enable":             true,
 		"implementation":     schema.Implementation,
 		"implementationName": schema.ImplementationName,
@@ -289,10 +292,13 @@ func (c *Client) SetEnabled(indexer Indexer, enabled bool) error {
 // re-testing the connection (the dashboard already validated against the tracker).
 func (c *Client) UpdateIndexer(indexer Indexer, trackerURL, apiKey string) (*Indexer, error) {
 	indexer.Fields = populateFields(indexer.Fields, trackerURL, apiKey)
-	return c.UpdateIndexerWithFields(indexer, indexer.Fields)
+	return c.UpdateIndexerWithFields(indexer, indexer.Fields, indexer.Name)
 }
 
-func (c *Client) UpdateIndexerWithFields(indexer Indexer, fields []SchemaField) (*Indexer, error) {
+func (c *Client) UpdateIndexerWithFields(indexer Indexer, fields []SchemaField, name string) (*Indexer, error) {
+	if strings.TrimSpace(name) != "" {
+		indexer.Name = name
+	}
 	indexer.Fields = fields
 	data, err := json.Marshal(indexer)
 	if err != nil {

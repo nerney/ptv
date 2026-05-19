@@ -247,11 +247,12 @@ func (h *Handler) pushTrackerToProwlarr(
 	}
 	settings := prowlarr.WithCoreCredentials(*schema, t.ProwlarrSettings, t.TrackerURL, t.APIKey)
 	fields := prowlarr.FieldsForPayload(*schema, settings)
+	managedName := prowlarr.ManagedIndexerName(t.Name)
 
 	// Update path: dashboard has a Prowlarr ID AND Prowlarr still has it.
 	if t.ProwlarrID != 0 {
 		if existing, ok := byID[t.ProwlarrID]; ok {
-			updated, uErr := client.UpdateIndexerWithFields(existing, fields)
+			updated, uErr := client.UpdateIndexerWithFields(existing, fields, managedName)
 			if uErr != nil {
 				return "updated", uErr
 			}
@@ -275,7 +276,7 @@ func (h *Handler) pushTrackerToProwlarr(
 		}
 	}
 	payloadSchema := prowlarr.IndexerSchemaForPayload(*schema, appProfileID)
-	added, aErr := client.AddIndexerWithFields(payloadSchema, fields)
+	added, aErr := client.AddIndexerWithFields(payloadSchema, fields, managedName)
 	if aErr != nil {
 		return "created", aErr
 	}

@@ -14,6 +14,8 @@ const ExistingSecretValue = "__ptv_existing_secret__"
 
 const DefaultIndexerPriority = 25
 
+const ManagedNameSuffix = " [ptv]"
+
 // SettingField is the sanitized view of a Prowlarr schema field that the UI
 // may render. Secret values are represented by ExistingSecretValue, never by
 // the stored secret itself.
@@ -102,6 +104,17 @@ func IndexerSchemaForPayload(schema IndexerSchema, appProfileID int) IndexerSche
 		schema.Priority = DefaultIndexerPriority
 	}
 	return schema
+}
+
+func ManagedIndexerName(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return strings.TrimSpace(ManagedNameSuffix)
+	}
+	if strings.HasSuffix(strings.ToLower(name), strings.TrimSpace(ManagedNameSuffix)) {
+		return name
+	}
+	return name + ManagedNameSuffix
 }
 
 // WithCoreCredentials returns schema-backed settings with PTV's core tracker
