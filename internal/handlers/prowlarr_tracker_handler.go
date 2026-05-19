@@ -50,24 +50,8 @@ func (h *Handler) configTrackerProwlarrPost(w http.ResponseWriter, r *http.Reque
 		flash(w, r, trackerProwlarrDiffPath(idx), "Prowlarr settings saved. Review drift before pushing.", "")
 		return
 	}
-
-	if err := h.pushTrackerProwlarrConfig(cfg, idx, *schema); err != nil {
-		cfg.Trackers[idx].ProwlarrSyncError = err.Error()
-		if saveErr := h.store.Save(cfg); saveErr != nil {
-			flash(w, r, trackerConfigPath(idx), "", "Push failed: "+err.Error()+"; save failed: "+saveErr.Error())
-			return
-		}
-		h.log.Err("CONFIG", fmt.Sprintf("Prowlarr push failed for %q: %s", cfg.Trackers[idx].Name, err.Error()))
-		flash(w, r, trackerConfigPath(idx), "", "Prowlarr push failed: "+err.Error())
-		return
-	}
-
-	if err := h.store.Save(cfg); err != nil {
-		flash(w, r, trackerConfigPath(idx), "", "Push succeeded but save failed: "+err.Error())
-		return
-	}
-	h.log.Info("CONFIG", fmt.Sprintf("Pushed Prowlarr settings for %q", cfg.Trackers[idx].Name))
-	flash(w, r, trackerConfigPath(idx), "Prowlarr settings saved and pushed.", "")
+	h.log.Info("CONFIG", fmt.Sprintf("Saved Prowlarr settings for %q (awaiting diff confirmation)", cfg.Trackers[idx].Name))
+	flash(w, r, trackerProwlarrDiffPath(idx), "Prowlarr settings saved. Confirm drift, then push to Prowlarr.", "")
 }
 
 func (h *Handler) trackerDefinitionURLs(definitionName string) []string {
