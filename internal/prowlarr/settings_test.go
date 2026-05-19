@@ -71,6 +71,37 @@ func TestRenderFieldsDoesNotExposeSecrets(t *testing.T) {
 	}
 }
 
+func TestRenderFieldsSanitizesHTMLHelpText(t *testing.T) {
+	schema := IndexerSchema{Fields: []SchemaField{
+		{
+			Name:     "apiKey",
+			Label:    "API Key",
+			HelpText: `<div><strong>About Your API Key</strong><br>Use your tracker API key &amp; keep it private.</div>`,
+		},
+		{
+			Name:     "accountInactivity",
+			Label:    "Account Inactivity",
+			HelpText: `<p><b>Account Inactivity</b></p><p>The time a torrent should be seeded before stopping...</p>`,
+		},
+		{
+			Name:     "minimumSeeders",
+			Label:    "Minimum Seeders",
+			HelpText: "The time a torrent should be seeded before stopping...",
+		},
+	}}
+
+	fields := RenderFields(schema, nil)
+	if fields[0].HelpText != "About Your API Key Use your tracker API key & keep it private." {
+		t.Fatalf("apiKey HelpText = %q", fields[0].HelpText)
+	}
+	if fields[1].HelpText != "Account Inactivity The time a torrent should be seeded before stopping..." {
+		t.Fatalf("accountInactivity HelpText = %q", fields[1].HelpText)
+	}
+	if fields[2].HelpText != "The time a torrent should be seeded before stopping..." {
+		t.Fatalf("plain HelpText changed: %q", fields[2].HelpText)
+	}
+}
+
 func TestWithCoreCredentialsOverlaysURLAndKey(t *testing.T) {
 	schema := IndexerSchema{Fields: []SchemaField{
 		{Name: "baseUrl"},

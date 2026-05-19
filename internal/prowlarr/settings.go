@@ -3,6 +3,7 @@ package prowlarr
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"reflect"
 	"sort"
 	"strconv"
@@ -122,7 +123,7 @@ func RenderFields(schema IndexerSchema, settings map[string]string) []SettingFie
 		r := SettingField{
 			Name:          f.Name,
 			Label:         f.Label,
-			HelpText:      f.HelpText,
+			HelpText:      plainHelpText(f.HelpText),
 			HelpLink:      f.HelpLink,
 			Placeholder:   f.Placeholder,
 			Type:          f.Type,
@@ -140,6 +141,32 @@ func RenderFields(schema IndexerSchema, settings map[string]string) []SettingFie
 		out = append(out, r)
 	}
 	return out
+}
+
+func plainHelpText(s string) string {
+	if s == "" {
+		return ""
+	}
+
+	var b strings.Builder
+	inTag := false
+	for _, r := range s {
+		switch r {
+		case '<':
+			inTag = true
+			if b.Len() > 0 {
+				b.WriteByte(' ')
+			}
+		case '>':
+			inTag = false
+			b.WriteByte(' ')
+		default:
+			if !inTag {
+				b.WriteRune(r)
+			}
+		}
+	}
+	return strings.Join(strings.Fields(html.UnescapeString(b.String())), " ")
 }
 
 func renderOptions(in []SelectOption) []SettingOption {
