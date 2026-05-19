@@ -9,8 +9,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-
-	"github.com/gorilla/csrf"
 )
 
 func TestCSRFMiddlewareRejectsMissingToken(t *testing.T) {
@@ -29,7 +27,7 @@ func TestCSRFMiddlewareRejectsMissingToken(t *testing.T) {
 func TestCSRFMiddlewareAllowsValidToken(t *testing.T) {
 	protected := csrfMiddleware()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			fmt.Fprintf(w, `<form method="POST">%s</form>`, csrf.TemplateField(r))
+			fmt.Fprintf(w, `<form method="POST">%s</form>`, csrfTemplateField(r))
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
@@ -42,7 +40,6 @@ func TestCSRFMiddlewareAllowsValidToken(t *testing.T) {
 	form := url.Values{csrfTokenFormField: {token}}
 	post := httptest.NewRequest(http.MethodPost, "/config/app/network", strings.NewReader(form.Encode()))
 	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	post.Header.Set("Referer", "https://example.com/config/app/network")
 	for _, c := range getRR.Result().Cookies() {
 		post.AddCookie(c)
 	}
@@ -55,7 +52,7 @@ func TestCSRFMiddlewareAllowsValidToken(t *testing.T) {
 	}
 }
 
-const csrfTokenFormField = "gorilla.csrf.Token"
+const csrfTokenFormField = csrfFormField
 
 var csrfTokenRE = regexp.MustCompile(`name="` + csrfTokenFormField + `" value="([^"]+)"`)
 

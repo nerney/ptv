@@ -5,7 +5,6 @@
 package handlers
 
 import (
-	"crypto/rand"
 	"embed"
 	"html/template"
 	"net/http"
@@ -17,7 +16,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/gorilla/csrf"
 
 	"github.com/nerney/ptv/internal/auth"
 	"github.com/nerney/ptv/internal/autobrrdefs"
@@ -120,7 +118,6 @@ func NewRouter(store *config.Store, syncer *defs.Syncer, autobrrSyncer *autobrrd
 	r.Use(noCache)
 	r.Use(h.sleepGuard)
 	r.Use(h.ipAllowGuard)
-	r.Use(reconcileHostMiddleware)
 	r.Use(csrfMiddleware())
 
 	// Static assets — IP-gated, but no session required (CSS shouldn't 302).
@@ -277,22 +274,6 @@ func (h *Handler) ipAllowGuard(next http.Handler) http.Handler {
 			return
 		}
 		next.ServeHTTP(w, r.WithContext(withClientIP(r.Context(), ip)))
-	})
-}
-
-// reconcileHostMiddleware rewrites Origin and Referer to match r.Host before
-// gorilla/csrf runs its host-match checks. Those checks compare
-// parsedOrigin.Host against r.Host; rewriting makes them trivially pass
-// regardless of proxy or VPN topology (e.g. Tailscale). The CSRF token itself
-// is still validated; SameSite=Strict session cookies prevent cross-origin
-// requests from carrying credentials.
-func reconcileHostMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r = r.Clone(r.Context())
-		origin := "http://" + r.Host
-		r.Header.Set("Origin", origin)
-		r.Header.Set("Referer", origin+"/")
-		next.ServeHTTP(w, r)
 	})
 }
 
@@ -460,27 +441,9 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, page string, da
 	}
 }
 
-func newCSRFKey() []byte {
-	key := make([]byte, 32)
-	if _, err := rand.Read(key); err != nil {
-		panic("csrf key generation failed: " + err.Error())
-	}
-	return key
-}
-
-func csrfMiddleware() func(http.Handler) http.Handler {
-	return csrf.Protect(
-		newCSRFKey(),
-		csrf.CookieName(csrfCookieName),
-		csrf.Path("/"),
-		csrf.SameSite(csrf.SameSiteStrictMode),
-		csrf.Secure(false),
-	)
-}
-
 func templateDataWithCSRF(r *http.Request, data interface{}) interface{} {
-	field := csrf.TemplateField(r)
-	token := csrf.Token(r)
+	field := csrfTemplateField(r)
+	token := csrfToken(r)
 	if data == nil {
 		return map[string]interface{}{"CSRFField": field, "CSRFToken": token}
 	}
