@@ -1,7 +1,7 @@
 {{ define "content" }}
 <header class="site-header">
   <div class="header-brand">
-    <a href="/tracker/{{ .TrackerIdx }}/config" class="brand-link">
+    <a href="/" class="brand-link">
       <span class="brand-back">←</span>
       <img src="/static/icon.png" alt="" class="brand-icon">
       <span class="brand-mark">PTV</span>
@@ -18,7 +18,7 @@
   <section class="config-section">
     <h2 class="config-section-title">{{ .Tracker.Name }}<span class="muted"> — PTV config</span></h2>
     <div class="section-rule"></div>
-    <form method="POST" action="/tracker/{{ .TrackerIdx }}/config/ptv" class="config-form">
+    <form method="POST" action="/tracker/{{ .TrackerIdx }}/config" class="config-form">
       <div class="config-row">
         <div class="field">
           <label class="field-label">URL</label>
@@ -40,7 +40,7 @@
         </div>
       </div>
       <div class="import-submit-row">
-        <a href="/tracker/{{ .TrackerIdx }}/config" class="btn-sm btn-ghost">CANCEL</a>
+        <a href="/" class="btn-sm btn-ghost">CANCEL</a>
         <button type="submit" class="btn-primary">VALIDATE &amp; SAVE →</button>
         <button type="submit" name="override" value="true" class="btn-sm btn-ghost"
           onclick="return confirm('Save {{ .Tracker.Name }} credentials without validating?\n\nStats will be cleared until validation succeeds.')">FORCE SAVE</button>

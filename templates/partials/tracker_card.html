@@ -24,11 +24,11 @@
           <span class="prowlarr-badge prowlarr-off" title="In Autobrr — disabled">○ AUTOBRR</span>
         {{ end }}
         {{ if eq .AutobrrIRCStatus "connected" }}
-          <span class="irc-badge irc-connected" title="Autobrr IRC network connected">IRC CONNECTED</span>
+          <span class="irc-badge irc-connected" title="Autobrr IRC network connected"><span class="irc-dot">●</span> IRC</span>
         {{ else if eq .AutobrrIRCStatus "disconnected" }}
-          <span class="irc-badge irc-disconnected" title="Autobrr IRC network disconnected">IRC DISCONNECTED</span>
+          <span class="irc-badge irc-disconnected" title="Autobrr IRC network disconnected"><span class="irc-dot">●</span> IRC</span>
         {{ else if eq .AutobrrIRCStatus "unknown" }}
-          <span class="irc-badge irc-unknown" title="No matching Autobrr IRC network found">IRC UNKNOWN</span>
+          <span class="irc-badge irc-unknown" title="No matching Autobrr IRC network found"><span class="irc-dot">?</span> IRC</span>
         {{ end }}
       {{ else }}
         <span class="prowlarr-badge prowlarr-none" title="Not in Autobrr">— AUTOBRR</span>
