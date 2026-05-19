@@ -72,11 +72,32 @@
     {{ end }}
 
     <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/prowlarr" class="config-form">
+      <div class="config-row prowlarr-field-row">
+        <div class="field">
+          <label class="field-label">URL</label>
+          {{ $currentURL := .Tracker.TrackerURL }}
+          {{ if gt (len .URLs) 1 }}
+            <select class="field-input field-select" name="url">
+              {{ range .URLs }}
+              <option value="{{ . }}" {{ if eq . $currentURL }}selected{{ end }}>{{ . }}</option>
+              {{ end }}
+            </select>
+          {{ else if eq (len .URLs) 1 }}
+            <input type="hidden" name="url" value="{{ index .URLs 0 }}">
+            <div class="field-authoritative">{{ index .URLs 0 }}</div>
+          {{ else }}
+            <input type="hidden" name="url" value="{{ $currentURL }}">
+            <div class="field-authoritative">{{ $currentURL }}</div>
+          {{ end }}
+          <p class="config-hint">Prowlarr uses this tracker URL and the saved tracker API key when pushing credentials.</p>
+        </div>
+      </div>
+
       {{ range .Fields }}
       {{ $field := . }}
       <div class="config-row prowlarr-field-row">
         <div class="field">
-          <label class="field-label">{{ if .Label }}{{ .Label }}{{ else }}{{ .Name }}{{ end }}{{ if .Advanced }} <span class="muted">ADVANCED</span>{{ end }}</label>
+          <label class="field-label">{{ if .Label }}{{ .Label }}{{ else }}{{ .Name }}{{ end }}</label>
           {{ if .SelectOptions }}
             <select class="field-input field-select" name="setting_{{ .Name }}">
               {{ range .SelectOptions }}
@@ -87,16 +108,16 @@
             <input type="hidden" name="setting_{{ .Name }}" value="false">
             <label class="checkline">
               <input type="checkbox" name="setting_{{ .Name }}" value="true" {{ if eq .Value "true" }}checked{{ end }}>
-              <span>{{ if .HelpText }}{{ .HelpText }}{{ else }}enabled{{ end }}</span>
+              <span>enabled</span>
             </label>
           {{ else if .Secret }}
             <input class="field-input field-token" type="password" name="setting_{{ .Name }}"
-              placeholder="{{ if .HasValue }}set — enter new value to replace{{ else }}required by Prowlarr{{ end }}" autocomplete="off">
+              value="{{ .Value }}" placeholder="{{ if .HasValue }}set — enter new value to replace{{ else }}required by Prowlarr{{ end }}" autocomplete="off">
           {{ else }}
             <input class="field-input" type="text" name="setting_{{ .Name }}"
               value="{{ .Value }}" placeholder="{{ .Placeholder }}" autocomplete="off">
           {{ end }}
-          {{ if and .HelpText (ne .Type "checkbox") }}
+          {{ if .HelpText }}
           <p class="config-hint">{{ .HelpText }}</p>
           {{ end }}
           {{ if .HelpLink }}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/nerney/ptv/internal/config"
@@ -15,6 +16,7 @@ type prowlarrTrackerData struct {
 	Tracker         *config.TrackerEntry
 	ProwlarrEnabled bool
 	SchemaError     string
+	URLs            []string
 	Fields          []prowlarr.SettingField
 	FlashError      string
 	FlashSuccess    string
@@ -45,6 +47,9 @@ func (h *Handler) configTrackerProwlarrPost(w http.ResponseWriter, r *http.Reque
 	if !cfg.ProwlarrEnabled || cfg.ProwlarrURL == "" || cfg.ProwlarrAPIKey == "" {
 		flash(w, r, pathConfigProwlarr, "", "Prowlarr not enabled")
 		return
+	}
+	if newURL := strings.TrimSpace(r.FormValue("url")); newURL != "" {
+		cfg.Trackers[idx].TrackerURL = newURL
 	}
 	schema, err := h.prowlarrSchemaByName(cfg.Trackers[idx].DefinitionName)
 	if err != nil {
@@ -94,6 +99,7 @@ func (h *Handler) prowlarrTrackerData(idx int, t *config.TrackerEntry, cfg *conf
 		ActiveTab:       "settings",
 		Section:         "prowlarr",
 	}
+	data.URLs = h.trackerDefinitionURLs(t.DefinitionName)
 	if !data.ProwlarrEnabled {
 		return data
 	}
@@ -105,6 +111,22 @@ func (h *Handler) prowlarrTrackerData(idx int, t *config.TrackerEntry, cfg *conf
 	settings := prowlarr.MergeSettings(*schema, t.ProwlarrSettings, nil)
 	data.Fields = prowlarr.RenderFields(*schema, settings)
 	return data
+}
+
+func (h *Handler) trackerDefinitionURLs(definitionName string) []string {
+	if h.syncer == nil {
+		return nil
+	}
+	allDefs, err := h.syncer.Catalog()
+	if err != nil {
+		return nil
+	}
+	for _, d := range allDefs {
+		if strings.EqualFold(d.Name, definitionName) {
+			return d.URLs
+		}
+	}
+	return nil
 }
 
 func submittedProwlarrSettings(r *http.Request, schema prowlarr.IndexerSchema) map[string]string {
