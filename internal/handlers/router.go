@@ -9,6 +9,7 @@ import (
 	"embed"
 	"html/template"
 	"net/http"
+	"net/url"
 	"reflect"
 	"strings"
 	"sync"
@@ -120,6 +121,7 @@ func NewRouter(store *config.Store, syncer *defs.Syncer, autobrrSyncer *autobrrd
 	r.Use(noCache)
 	r.Use(h.sleepGuard)
 	r.Use(h.ipAllowGuard)
+	r.Use(reconcileHostMiddleware)
 	r.Use(csrfMiddleware())
 
 	// Static assets — IP-gated, but no session required (CSS shouldn't 302).
@@ -276,6 +278,30 @@ func (h *Handler) ipAllowGuard(next http.Handler) http.Handler {
 			return
 		}
 		next.ServeHTTP(w, r.WithContext(withClientIP(r.Context(), ip)))
+	})
+}
+
+// reconcileHostMiddleware aligns r.Host with the external-facing host before
+// gorilla/csrf runs its Origin check. Without this, the check fails when a
+// reverse proxy changes the Host header seen by Go. X-Forwarded-Host takes
+// priority; if absent the Origin header's host is used as the authoritative
+// value. The CSRF token is still validated; session cookies are SameSite=Strict
+// so cross-origin requests cannot carry the cookie to exploit this.
+func reconcileHostMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		host := strings.TrimSpace(strings.SplitN(r.Header.Get("X-Forwarded-Host"), ",", 2)[0])
+		if host == "" {
+			if origin := r.Header.Get("Origin"); origin != "" && origin != "null" {
+				if u, err := url.Parse(origin); err == nil {
+					host = u.Host
+				}
+			}
+		}
+		if host != "" && host != r.Host {
+			r = r.Clone(r.Context())
+			r.Host = host
+		}
+		next.ServeHTTP(w, r)
 	})
 }
 
