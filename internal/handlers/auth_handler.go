@@ -192,6 +192,7 @@ func (h *Handler) loginSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	setSessionCookie(w, r, id)
 	h.log.Info("AUTH", "Logged in from "+ip)
+	go h.warmProwlarrSchemas()
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 

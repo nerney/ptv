@@ -245,7 +245,7 @@ func (h *Handler) pushTrackerToProwlarr(
 
 	// Create path. Look up the schema (so AddIndexer can populate
 	// implementation-specific defaults) and post the new indexer.
-	schema, sErr := client.SchemaByName(t.DefinitionName)
+	schema, sErr := h.prowlarrSchemaByName(t.DefinitionName)
 	if sErr != nil {
 		return "created", fmt.Errorf("schema lookup: %w", sErr)
 	}

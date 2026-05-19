@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"net/http"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/nerney/ptv/internal/defs"
 	"github.com/nerney/ptv/internal/logger"
 	"github.com/nerney/ptv/internal/netacl"
+	"github.com/nerney/ptv/internal/prowlarr"
 )
 
 const (
@@ -51,6 +53,10 @@ type Handler struct {
 	// sleeping flips to true if the setup window expires without setup
 	// completing. The sleep-guard middleware reads it on every request.
 	sleeping atomic.Bool
+
+	// prowlarr schema cache — populated by warmProwlarrSchemas.
+	pSchemasMu sync.RWMutex
+	pSchemas   map[string]prowlarr.IndexerSchema
 }
 
 // NewRouter builds the fully-wired HTTP handler tree:

@@ -254,6 +254,7 @@ func (h *Handler) configProwlarrPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.log.Info("CONFIG", "Prowlarr settings saved")
+	go h.warmProwlarrSchemas()
 	flash(w, r, pathConfigProwlarr, "Prowlarr settings saved.", "")
 }
 
@@ -268,6 +269,7 @@ func (h *Handler) configProwlarrEnable(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.log.Info("CONFIG", "Prowlarr integration enabled")
+	go h.warmProwlarrSchemas()
 	flash(w, r, pathConfigProwlarr, "Prowlarr integration enabled.", "")
 }
 
