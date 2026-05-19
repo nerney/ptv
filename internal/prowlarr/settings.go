@@ -261,14 +261,14 @@ func comparableSettingValue(f SchemaField, value string, ok bool) string {
 			value = valueString(f.Value)
 		}
 	}
-	if IsURLField(f) {
-		return NormalizeURL(value)
-	}
 	if isBoolField(f) {
-		if value == "" {
+		if value == "" || strings.EqualFold(value, "false") || value == "0" {
 			return "false"
 		}
 		return strconv.FormatBool(value == "true" || value == "on" || value == "1")
+	}
+	if IsURLField(f) {
+		return NormalizeURL(value)
 	}
 	if isNumberField(f) {
 		if n, err := strconv.ParseFloat(value, 64); err == nil {

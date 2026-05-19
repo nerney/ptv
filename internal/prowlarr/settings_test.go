@@ -196,6 +196,25 @@ func TestDiffSettingsNormalizesBlankCheckboxFalse(t *testing.T) {
 	}
 }
 
+func TestDiffSettingsIgnoresNormalizedURLAndFalseCheckbox(t *testing.T) {
+	schema := IndexerSchema{Fields: []SchemaField{
+		{Name: "baseUrl"},
+		{Name: "torrentBaseSettings.preferMagnetUrl", Type: "checkbox"},
+	}}
+	desired := map[string]string{
+		"baseUrl":                             "https://darkpeers.org/",
+		"torrentBaseSettings.preferMagnetUrl": "false",
+	}
+	actual := map[string]string{
+		"baseUrl":                             "https://darkpeers.org",
+		"torrentBaseSettings.preferMagnetUrl": "",
+	}
+
+	if diff := DiffSettings(schema, desired, actual); len(diff) != 0 {
+		t.Fatalf("DiffSettings() = %v, want no drift", diff)
+	}
+}
+
 func TestIndexerSchemaForPayloadFillsRequiredRootDefaults(t *testing.T) {
 	schema := IndexerSchema{AppProfileID: 0, Priority: 0}
 
