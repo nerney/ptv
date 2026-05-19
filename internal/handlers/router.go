@@ -48,6 +48,7 @@ type Handler struct {
 	acl           *netacl.ACL
 	sessions      *auth.Manager
 	limiter       *auth.RateLimiter
+	validateFn    func(typeID, url, apiKey string) (*config.UserStats, error)
 
 	templates map[string]*template.Template
 	fs        embed.FS

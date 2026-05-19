@@ -15,6 +15,9 @@ import (
 // This is the canonical credential-check path: any time the user enters
 // or changes URL+API key we call this to confirm the pair actually works.
 func (h *Handler) validateTracker(typeID, url, apiKey string) (*config.UserStats, error) {
+	if h.validateFn != nil {
+		return h.validateFn(typeID, url, apiKey)
+	}
 	tt := resolveTrackerType(typeID)
 	if tt == nil {
 		return nil, fmt.Errorf("no tracker type registered for %q", typeID)
