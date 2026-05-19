@@ -278,17 +278,19 @@ func submittedAutobrrSettings(r *http.Request, def autobrrdefs.Def) map[string]s
 	out := make(map[string]string)
 	for _, f := range def.Settings {
 		name := "setting_" + f.Name
-		if _, ok := r.Form[name]; !ok {
+		values, ok := r.Form[name]
+		if !ok {
 			continue
 		}
-		out[f.Name] = r.FormValue(name)
+		out[f.Name] = submittedFormValue(values, f.Type)
 	}
 	for _, f := range def.IRCSettings {
 		name := "setting_" + f.Name
-		if _, ok := r.Form[name]; !ok {
+		values, ok := r.Form[name]
+		if !ok {
 			continue
 		}
-		out[f.Name] = r.FormValue(name)
+		out[f.Name] = submittedFormValue(values, f.Type)
 	}
 	return out
 }

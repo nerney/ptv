@@ -30,6 +30,29 @@ func hasInt(values []int, target int) bool {
 	return false
 }
 
+func formCheckboxChecked(values []string) bool {
+	for _, raw := range values {
+		switch strings.ToLower(strings.TrimSpace(raw)) {
+		case "true", "1", "on", "yes":
+			return true
+		}
+	}
+	return false
+}
+
+func submittedFormValue(values []string, fieldType string) string {
+	if strings.EqualFold(fieldType, "checkbox") {
+		if formCheckboxChecked(values) {
+			return "true"
+		}
+		return "false"
+	}
+	if len(values) == 0 {
+		return ""
+	}
+	return values[0]
+}
+
 // ratioClass maps a numeric ratio to a CSS class name.
 func ratioClass(f float64) string {
 	switch {

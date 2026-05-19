@@ -29,7 +29,7 @@ func (h *Handler) configTrackerProwlarrPost(w http.ResponseWriter, r *http.Reque
 		cfg.Trackers[idx].TrackerURL = newURL
 	}
 	cfg.Trackers[idx].ProwlarrName = strings.TrimSpace(r.FormValue("prowlarr_name"))
-	cfg.Trackers[idx].Enabled = r.FormValue("enabled") == "true"
+	cfg.Trackers[idx].Enabled = formCheckboxChecked(r.Form["enabled"])
 	cfg.Trackers[idx].ProwlarrAppProfileID = formInt(r.FormValue("app_profile_id"))
 	cfg.Trackers[idx].ProwlarrTags = submittedIntSlice(r.Form["tag"])
 	schema, err := h.prowlarrSchemaByName(cfg.Trackers[idx].DefinitionName)
@@ -90,10 +90,11 @@ func submittedProwlarrSettings(r *http.Request, schema prowlarr.IndexerSchema) m
 	out := make(map[string]string, len(schema.Fields))
 	for _, f := range schema.Fields {
 		name := "setting_" + f.Name
-		if _, ok := r.Form[name]; !ok {
+		values, ok := r.Form[name]
+		if !ok {
 			continue
 		}
-		out[f.Name] = r.FormValue(name)
+		out[f.Name] = submittedFormValue(values, f.Type)
 	}
 	return out
 }
