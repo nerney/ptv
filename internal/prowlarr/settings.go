@@ -157,17 +157,7 @@ func renderOptions(in []SelectOption) []SettingOption {
 // SettingsEqual compares schema-backed settings maps. Unknown keys are ignored
 // and default schema values are applied before comparison.
 func SettingsEqual(schema IndexerSchema, left, right map[string]string) bool {
-	l := MergeSettings(schema, left, nil)
-	r := MergeSettings(schema, right, nil)
-	if len(l) != len(r) {
-		return false
-	}
-	for k, lv := range l {
-		if r[k] != lv {
-			return false
-		}
-	}
-	return true
+	return len(DiffSettings(schema, left, right)) == 0
 }
 
 // DiffSettings returns schema field names whose normalized values differ.
@@ -176,12 +166,64 @@ func DiffSettings(schema IndexerSchema, left, right map[string]string) []string 
 	r := MergeSettings(schema, right, nil)
 	var diff []string
 	for _, f := range schema.Fields {
-		if l[f.Name] != r[f.Name] {
+		if ignoreForDrift(f) {
+			continue
+		}
+		lv, lok := l[f.Name]
+		rv, rok := r[f.Name]
+		if comparableSettingValue(f, lv, lok) != comparableSettingValue(f, rv, rok) {
 			diff = append(diff, f.Name)
 		}
 	}
 	sort.Strings(diff)
 	return diff
+}
+
+func ignoreForDrift(f SchemaField) bool {
+	return IsDefinitionFileField(f) || IsSecretField(f)
+}
+
+func comparableSettingValue(f SchemaField, value string, ok bool) string {
+	if !ok {
+		value = ""
+		if hasRealDefault(f.Value) {
+			value = valueString(f.Value)
+		}
+	}
+	if IsURLField(f) {
+		return NormalizeURL(value)
+	}
+	if isBoolField(f) {
+		if value == "" {
+			return "false"
+		}
+		return strconv.FormatBool(value == "true" || value == "on" || value == "1")
+	}
+	if isNumberField(f) {
+		if n, err := strconv.ParseFloat(value, 64); err == nil {
+			return strconv.FormatFloat(n, 'f', -1, 64)
+		}
+	}
+	return value
+}
+
+func isBoolField(f SchemaField) bool {
+	if f.Type == "checkbox" {
+		return true
+	}
+	_, ok := f.Value.(bool)
+	return ok
+}
+
+func isNumberField(f SchemaField) bool {
+	if f.Type == "number" {
+		return true
+	}
+	switch f.Value.(type) {
+	case float64, float32, int, int64, json.Number:
+		return true
+	}
+	return false
 }
 
 // IsSecretField follows PTV's Prowlarr rule: required schema fields without a

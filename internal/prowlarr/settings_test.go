@@ -94,3 +94,41 @@ func TestWithCoreCredentialsOverlaysURLAndKey(t *testing.T) {
 		t.Fatalf("minimumSeeders = %q", got["minimumSeeders"])
 	}
 }
+
+func TestDiffSettingsIgnoresProwlarrReadbackOnlyFields(t *testing.T) {
+	schema := IndexerSchema{Fields: []SchemaField{
+		{Name: "baseUrl"},
+		{Name: "info_key", Value: "masked"},
+		{Name: "definitionFile", Value: "unit3d.yml"},
+	}}
+	desired := map[string]string{
+		"baseUrl":        "https://tracker.test/",
+		"info_key":       "real-secret",
+		"definitionFile": "unit3d.yml",
+	}
+	actual := map[string]string{
+		"baseUrl":        "https://tracker.test",
+		"info_key":       "",
+		"definitionFile": "prowlarr-readback.yml",
+	}
+
+	if diff := DiffSettings(schema, desired, actual); len(diff) != 0 {
+		t.Fatalf("DiffSettings() = %v, want no drift", diff)
+	}
+}
+
+func TestDiffSettingsNormalizesBlankCheckboxFalse(t *testing.T) {
+	schema := IndexerSchema{Fields: []SchemaField{
+		{Name: "torrentBaseSettings.preferMagnetUrl", Type: "checkbox"},
+	}}
+	actual := map[string]string{"torrentBaseSettings.preferMagnetUrl": ""}
+
+	if diff := DiffSettings(schema, nil, actual); len(diff) != 0 {
+		t.Fatalf("DiffSettings() = %v, want blank checkbox to equal false", diff)
+	}
+
+	actual["torrentBaseSettings.preferMagnetUrl"] = "true"
+	if diff := DiffSettings(schema, nil, actual); len(diff) != 1 || diff[0] != "torrentBaseSettings.preferMagnetUrl" {
+		t.Fatalf("DiffSettings() = %v, want preferMagnetUrl drift", diff)
+	}
+}
