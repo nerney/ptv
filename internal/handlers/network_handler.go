@@ -29,7 +29,7 @@ type networkPageData struct {
 // can copy their current address rather than try to remember it.
 func (h *Handler) networkPage(w http.ResponseWriter, r *http.Request) {
 	n := h.store.GetNetACL()
-	h.render(w, "config_network", networkPageData{
+	h.render(w, r, "config_network", networkPageData{
 		NetACL:       n,
 		Section:      "app",
 		ClientIP:     clientIP(r),

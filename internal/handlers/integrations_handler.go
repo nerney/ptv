@@ -14,7 +14,7 @@ type integrationsData struct {
 }
 
 func (h *Handler) integrationsPage(w http.ResponseWriter, r *http.Request) {
-	h.render(w, "integrations", integrationsData{
+	h.render(w, r, "integrations", integrationsData{
 		Config:       h.store.Get(),
 		FlashError:   r.URL.Query().Get("err"),
 		FlashSuccess: r.URL.Query().Get("ok"),

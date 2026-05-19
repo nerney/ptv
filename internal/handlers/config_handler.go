@@ -96,7 +96,7 @@ func (h *Handler) configLanding(w http.ResponseWriter, r *http.Request) {
 		FlashSuccess:    r.URL.Query().Get("ok"),
 	}
 	data.DefsState, data.DefsMsg = h.syncer.Status()
-	h.render(w, "config_landing", data)
+	h.render(w, r, "config_landing", data)
 }
 
 // ── /config/trackers ──────────────────────────────────────────────────────────
@@ -125,7 +125,7 @@ func (h *Handler) configTrackersPage(w http.ResponseWriter, r *http.Request) {
 	allDefs := h.catalogIfReady(data.DefsState, &data.LoadError)
 	data.Rows = buildConfigRows(cfg.Trackers, allDefs)
 
-	h.render(w, "config_trackers", data)
+	h.render(w, r, "config_trackers", data)
 }
 
 // catalogIfReady returns the parsed catalog if the syncer has it, or
@@ -200,7 +200,7 @@ func (h *Handler) configProwlarrPage(w http.ResponseWriter, r *http.Request) {
 	if cfg.ProwlarrURL == "" {
 		cfg.ProwlarrURL = "http://prowlarr:9696"
 	}
-	h.render(w, "config_prowlarr", configProwlarrData{
+	h.render(w, r, "config_prowlarr", configProwlarrData{
 		Config:       cfg,
 		FlashError:   r.URL.Query().Get("err"),
 		FlashSuccess: r.URL.Query().Get("ok"),

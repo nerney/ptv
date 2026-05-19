@@ -34,6 +34,7 @@
         <template>
           <div class="tracker-row-body">
             <form method="POST" action="/trackers/add" class="config-form">
+    {{ $.CSRFField }}
               <input type="hidden" name="schema_name" value="{{ .Name }}">
               <input type="hidden" name="tracker_type" value="{{ .TypeID }}">
               <div class="config-row">

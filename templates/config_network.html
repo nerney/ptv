@@ -42,6 +42,7 @@
     </p>
 
     <form method="POST" action="/config/app/network" class="config-form">
+    {{ $.CSRFField }}
       <div class="field">
         <label class="field-label">ALLOWED CIDRS</label>
         <textarea class="field-input field-textarea" name="cidrs" rows="5"

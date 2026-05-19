@@ -45,6 +45,7 @@
         <template>
         <div class="prowlarr-pill-body">
           <form method="POST" action="/config/integrations/autobrr" class="config-form">
+    {{ $.CSRFField }}
             <div class="config-row">
               <div class="field">
                 <label class="field-label">URL</label>
@@ -63,6 +64,7 @@
             </div>
           </form>
           <form method="POST" action="/config/integrations/autobrr/disable" class="inline-form prowlarr-disable">
+    {{ $.CSRFField }}
             <button type="submit" class="btn-sm btn-ghost">DISABLE INTEGRATION</button>
           </form>
         </div>
@@ -79,6 +81,7 @@
       <div class="section-rule"></div>
       <p class="config-hint">Connect to your Autobrr instance.</p>
       <form method="POST" action="/config/integrations/autobrr" class="config-form">
+    {{ $.CSRFField }}
         <div class="config-row">
           <div class="field">
             <label class="field-label">URL</label>
@@ -97,6 +100,7 @@
         </div>
       </form>
       <form method="POST" action="/config/integrations/autobrr/disable" class="inline-form prowlarr-disable">
+    {{ $.CSRFField }}
         <button type="submit" class="btn-sm btn-ghost">CANCEL</button>
       </form>
 
@@ -107,6 +111,7 @@
         <span class="pill-text muted">AUTOBRR DISABLED</span>
         <span class="pill-sub muted">credentials preserved</span>
         <form method="POST" action="/config/integrations/autobrr/enable" class="inline-form">
+    {{ $.CSRFField }}
           <button type="submit" class="btn-sm btn-ghost">RE-ENABLE</button>
         </form>
       </div>
@@ -117,6 +122,7 @@
       <div class="section-rule"></div>
       <p class="config-hint">Autobrr is optional. It lets you import already-configured indexers and push your tracker config out to Autobrr. Per-tracker IRC connection status is also surfaced on the dashboard cards.</p>
       <form method="POST" action="/config/integrations/autobrr/enable" class="inline-form">
+    {{ $.CSRFField }}
         <button type="submit" class="btn-primary">ENABLE AUTOBRR INTEGRATION →</button>
       </form>
     {{ end }}

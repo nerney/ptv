@@ -45,6 +45,7 @@
   <p class="config-hint">Push your tracker configuration into Prowlarr. Synced rows match Prowlarr's current state. New rows aren't in Prowlarr yet. Drift rows exist in both but differ — pushing overrides Prowlarr with this dashboard's values (uses <code>forceSave</code>).</p>
 
   <form method="POST" action="/sync/prowlarr" class="sync-form">
+    {{ $.CSRFField }}
 
     {{ if .New }}
     <section class="config-section">

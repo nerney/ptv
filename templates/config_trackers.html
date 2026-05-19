@@ -127,6 +127,7 @@
             </div>
 
             <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/update" class="config-form">
+    {{ $.CSRFField }}
               <div class="config-row">
                 <div class="field">
                   <label class="field-label">URL</label>
@@ -166,31 +167,38 @@
             <div class="tracker-row-actions">
               {{ if and $.ProwlarrEnabled (gt .Tracker.ProwlarrID 0) }}
                 <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/prowlarr/toggle" class="inline-form">
+    {{ $.CSRFField }}
                   <button type="submit" class="btn-sm btn-ghost">{{ if .Tracker.Enabled }}DISABLE IN PROWLARR{{ else }}ENABLE IN PROWLARR{{ end }}</button>
                 </form>
                 <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/prowlarr/remove" class="inline-form">
+    {{ $.CSRFField }}
                   <button type="submit" class="btn-sm btn-danger">REMOVE FROM PROWLARR</button>
                 </form>
               {{ else if $.ProwlarrEnabled }}
                 <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/prowlarr/add" class="inline-form">
+    {{ $.CSRFField }}
                   <button type="submit" class="btn-sm btn-ghost">ADD TO PROWLARR</button>
                 </form>
               {{ end }}
 
               {{ if and $.AutobrrEnabled (gt .Tracker.AutobrrID 0) }}
                 <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/autobrr/toggle" class="inline-form">
+    {{ $.CSRFField }}
                   <button type="submit" class="btn-sm btn-ghost">{{ if .Tracker.AutobrrEnabled }}DISABLE IN AUTOBRR{{ else }}ENABLE IN AUTOBRR{{ end }}</button>
                 </form>
                 <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/autobrr/remove" class="inline-form">
+    {{ $.CSRFField }}
                   <button type="submit" class="btn-sm btn-danger">REMOVE FROM AUTOBRR</button>
                 </form>
               {{ else if $.AutobrrEnabled }}
                 <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/autobrr/add" class="inline-form">
+    {{ $.CSRFField }}
                   <button type="submit" class="btn-sm btn-ghost">ADD TO AUTOBRR</button>
                 </form>
               {{ end }}
 
               <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/delete" class="inline-form">
+    {{ $.CSRFField }}
                 <button type="submit" class="btn-sm btn-danger"
                   onclick="return confirm('Remove {{ .Name }} from dashboard?')">DELETE</button>
               </form>
@@ -199,6 +207,7 @@
         {{ else }}
           <div class="tracker-row-body">
             <form method="POST" action="/config/add" class="config-form">
+    {{ $.CSRFField }}
               <input type="hidden" name="schema_name" value="{{ .Name }}">
               <input type="hidden" name="tracker_type" value="{{ .TypeID }}">
               <div class="config-row">

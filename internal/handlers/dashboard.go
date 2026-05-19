@@ -25,7 +25,7 @@ func (h *Handler) dashboard(w http.ResponseWriter, r *http.Request) {
 	sortKey := r.URL.Query().Get("sort")
 	views := h.buildTrackerViews(cfg)
 	sortTrackerViews(views, sortKey)
-	h.render(w, "dashboard", dashboardData{
+	h.render(w, r, "dashboard", dashboardData{
 		Trackers:        views,
 		Date:            time.Now().Format("02 Jan 2006"),
 		Sort:            sortKey,

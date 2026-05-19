@@ -69,7 +69,7 @@ func (h *Handler) prowlarrSyncPage(w http.ResponseWriter, r *http.Request) {
 	data.ProwlarrEnabled = cfg.ProwlarrEnabled && cfg.ProwlarrURL != "" && cfg.ProwlarrAPIKey != ""
 
 	if !data.ProwlarrEnabled {
-		h.render(w, "prowlarr_sync", data)
+		h.render(w, r, "prowlarr_sync", data)
 		return
 	}
 
@@ -77,7 +77,7 @@ func (h *Handler) prowlarrSyncPage(w http.ResponseWriter, r *http.Request) {
 	prowlarrIndexers, err := client.GetIndexers()
 	if err != nil {
 		data.LoadError = "Failed to fetch Prowlarr indexers: " + err.Error()
-		h.render(w, "prowlarr_sync", data)
+		h.render(w, r, "prowlarr_sync", data)
 		return
 	}
 
@@ -96,7 +96,7 @@ func (h *Handler) prowlarrSyncPage(w http.ResponseWriter, r *http.Request) {
 
 	h.log.Info("CONFIG", fmt.Sprintf("Prowlarr sync state: %d synced, %d new, %d drift",
 		len(data.Synced), len(data.New), len(data.Drift)))
-	h.render(w, "prowlarr_sync", data)
+	h.render(w, r, "prowlarr_sync", data)
 }
 
 // indexersByID indexes the Prowlarr list by ID so classifyTracker can

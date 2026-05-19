@@ -46,13 +46,13 @@ func (h *Handler) importPage(w http.ResponseWriter, r *http.Request) {
 	data.ProwlarrEnabled = cfg.ProwlarrEnabled && cfg.ProwlarrURL != "" && cfg.ProwlarrAPIKey != ""
 
 	if !data.ProwlarrEnabled {
-		h.render(w, "import", data)
+		h.render(w, r, "import", data)
 		return
 	}
 
 	if st, _ := h.syncer.Status(); st == defs.StateUnavailable {
 		data.LoadError = "Indexer definitions unavailable — try again shortly."
-		h.render(w, "import", data)
+		h.render(w, r, "import", data)
 		return
 	}
 
@@ -60,12 +60,12 @@ func (h *Handler) importPage(w http.ResponseWriter, r *http.Request) {
 	importable, err := h.loadImportable(client, &cfg)
 	if err != nil {
 		data.LoadError = err.Error()
-		h.render(w, "import", data)
+		h.render(w, r, "import", data)
 		return
 	}
 	data.ProwlarrOK = true
 	data.Importable = importable
-	h.render(w, "import", data)
+	h.render(w, r, "import", data)
 }
 
 // importSubmit imports every selected Prowlarr indexer. Validation

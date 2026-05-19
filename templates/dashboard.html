@@ -12,6 +12,7 @@
     {{ if .Trackers }}
     <button class="btn-primary htmx-btn"
             hx-post="/refresh{{ if .Sort }}?sort={{ .Sort }}{{ end }}"
+            hx-headers='{"X-CSRF-Token":"{{ .CSRFToken }}"}'
             hx-target="#tracker-grid"
             hx-swap="innerHTML">
       <span class="btn-label">REFRESH</span>
@@ -26,6 +27,7 @@
     {{ end }}
     <a href="/config" class="btn-ghost">CONFIG</a>
     <form method="POST" action="/logout" class="inline-form header-logout">
+    {{ $.CSRFField }}
       <button type="submit" class="btn-ghost">LOGOUT</button>
     </form>
   </nav>

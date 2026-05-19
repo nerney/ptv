@@ -39,7 +39,7 @@ func (h *Handler) autobrrSyncPage(w http.ResponseWriter, r *http.Request) {
 		FlashSuccess:   r.URL.Query().Get("ok"),
 	}
 	if !data.AutobrrEnabled {
-		h.render(w, "autobrr_sync", data)
+		h.render(w, r, "autobrr_sync", data)
 		return
 	}
 	for i, t := range cfg.Trackers {
@@ -52,7 +52,7 @@ func (h *Handler) autobrrSyncPage(w http.ResponseWriter, r *http.Request) {
 			data.New = append(data.New, row)
 		}
 	}
-	h.render(w, "autobrr_sync", data)
+	h.render(w, r, "autobrr_sync", data)
 }
 
 func (h *Handler) autobrrSyncSubmit(w http.ResponseWriter, r *http.Request) {

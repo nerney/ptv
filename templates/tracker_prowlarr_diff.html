@@ -15,6 +15,7 @@
   <span class="config-nav-sep">/</span>
   <a href="/tracker/{{ .TrackerIdx }}/config" class="config-nav-link">TRACKER CONFIG</a>
   <form method="POST" action="/logout" class="inline-form config-nav-logout-form">
+    {{ $.CSRFField }}
     <button type="submit" class="config-nav-logout-btn">LOGOUT</button>
   </form>
 </nav>
@@ -52,6 +53,7 @@
     {{ end }}
     {{ end }}
     <form method="POST" action="/tracker/{{ .TrackerIdx }}/config/prowlarr/diff" class="import-submit-row">
+    {{ $.CSRFField }}
       <a href="/tracker/{{ .TrackerIdx }}/config" class="btn-sm btn-ghost">CANCEL</a>
       {{ if ne .Row.State "synced" }}<button type="submit" class="btn-primary">PUSH TO PROWLARR →</button>{{ end }}
     </form>

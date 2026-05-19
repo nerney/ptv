@@ -22,6 +22,7 @@
   </section>
   {{ else }}
   <form method="POST" action="/sync/autobrr" class="sync-form">
+    {{ $.CSRFField }}
     {{ if .New }}
     <section class="config-section">
       <h2 class="config-section-title">NEW IN AUTOBRR<span class="muted"> — {{ len .New }}</span></h2>

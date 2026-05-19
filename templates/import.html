@@ -52,6 +52,7 @@
     <p class="config-hint">Select trackers to import. Each is validated against UNIT3D <code>/api/user</code>; any that fail are still added (with empty stats) and reported on the home page.</p>
 
     <form method="POST" action="/config/integrations/prowlarr/import" class="import-form" id="import-form">
+    {{ $.CSRFField }}
       <label class="import-row import-row-check import-row-all">
         <input type="checkbox" id="import-check-all" class="import-check">
         <span class="tracker-select-name">SELECT ALL</span>

@@ -36,7 +36,7 @@ func (h *Handler) setupPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-	h.render(w, "setup", setupPageData{ClientIP: clientIP(r)})
+	h.render(w, r, "setup", setupPageData{ClientIP: clientIP(r)})
 }
 
 // setupSubmit validates the form, runs Store.Init (atomically writes
@@ -108,7 +108,7 @@ func validateSetupInput(username, password, confirm string) (string, bool) {
 }
 
 func (h *Handler) renderSetupErr(w http.ResponseWriter, r *http.Request, msg string) {
-	h.render(w, "setup", setupPageData{Error: msg, ClientIP: clientIP(r)})
+	h.render(w, r, "setup", setupPageData{Error: msg, ClientIP: clientIP(r)})
 }
 
 // ---------- /login -------------------------------------------------------
@@ -128,7 +128,7 @@ func (h *Handler) loginPage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	h.render(w, "login", loginPageData{})
+	h.render(w, r, "login", loginPageData{})
 }
 
 // loginSubmit is the core unlock path:
@@ -153,7 +153,7 @@ func (h *Handler) loginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		h.render(w, "login", loginPageData{Error: "invalid form"})
+		h.render(w, r, "login", loginPageData{Error: "invalid form"})
 		return
 	}
 	if h.sessions.HasSession() {
@@ -167,25 +167,25 @@ func (h *Handler) loginSubmit(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 	if username == "" || password == "" {
 		h.limiter.RecordFailure(ip)
-		h.render(w, "login", loginPageData{Error: "Incorrect username or password."})
+		h.render(w, r, "login", loginPageData{Error: "Incorrect username or password."})
 		return
 	}
 	if err := h.store.Unlock(password); err != nil {
 		h.limiter.RecordFailure(ip)
 		if errors.Is(err, config.ErrBadPassword) {
 			h.log.Err("AUTH", "Bad password from "+ip)
-			h.render(w, "login", loginPageData{Error: "Incorrect username or password."})
+			h.render(w, r, "login", loginPageData{Error: "Incorrect username or password."})
 			return
 		}
 		h.log.Err("AUTH", "Unlock failed: "+err.Error())
-		h.render(w, "login", loginPageData{Error: "Login failed."})
+		h.render(w, r, "login", loginPageData{Error: "Login failed."})
 		return
 	}
 	if h.store.Get().Username != username {
 		h.store.Lock()
 		h.limiter.RecordFailure(ip)
 		h.log.Err("AUTH", "Bad username from "+ip)
-		h.render(w, "login", loginPageData{Error: "Incorrect username or password."})
+		h.render(w, r, "login", loginPageData{Error: "Incorrect username or password."})
 		return
 	}
 	h.limiter.RecordSuccess(ip)
@@ -201,7 +201,7 @@ func (h *Handler) loginSubmit(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.log.Err("AUTH", "Begin session: "+err.Error())
-		h.render(w, "login", loginPageData{Error: "Login failed."})
+		h.render(w, r, "login", loginPageData{Error: "Login failed."})
 		return
 	}
 	setSessionCookie(w, r, id)

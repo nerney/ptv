@@ -95,7 +95,7 @@ func (h *Handler) trackerConfigPage(w http.ResponseWriter, r *http.Request) {
 	data := h.buildUnifiedTrackerConfigData(idx, cfg)
 	data.FlashError = r.URL.Query().Get("err")
 	data.FlashSuccess = r.URL.Query().Get("ok")
-	h.render(w, "tracker_config_unified", data)
+	h.render(w, r, "tracker_config_unified", data)
 }
 
 func (h *Handler) buildUnifiedTrackerConfigData(idx int, cfg *config.Config) unifiedTrackerConfigData {
@@ -279,7 +279,7 @@ func (h *Handler) trackerAddPage(w http.ResponseWriter, r *http.Request) {
 			data.Rows = append(data.Rows, row)
 		}
 	}
-	h.render(w, "tracker_add", data)
+	h.render(w, r, "tracker_add", data)
 }
 
 func (h *Handler) trackerProwlarrDiffPage(w http.ResponseWriter, r *http.Request) {
@@ -292,18 +292,18 @@ func (h *Handler) trackerProwlarrDiffPage(w http.ResponseWriter, r *http.Request
 		trackerConfigData: h.trackerConfigData(idx, cfg.Trackers[idx], cfg, r, "prowlarr"),
 	}
 	if !data.ProwlarrEnabled {
-		h.render(w, "tracker_prowlarr_diff", data)
+		h.render(w, r, "tracker_prowlarr_diff", data)
 		return
 	}
 	client := prowlarr.New(cfg.ProwlarrURL, cfg.ProwlarrAPIKey, h.log)
 	indexers, err := client.GetIndexers()
 	if err != nil {
 		data.Row = prowlarrSyncRow{TrackerIdx: idx, Name: cfg.Trackers[idx].Name, State: syncDrift, SchemaError: err.Error()}
-		h.render(w, "tracker_prowlarr_diff", data)
+		h.render(w, r, "tracker_prowlarr_diff", data)
 		return
 	}
 	data.Row = h.classifyTracker(idx, cfg.Trackers[idx], indexersByID(indexers))
-	h.render(w, "tracker_prowlarr_diff", data)
+	h.render(w, r, "tracker_prowlarr_diff", data)
 }
 
 func (h *Handler) trackerProwlarrDiffPush(w http.ResponseWriter, r *http.Request) {
@@ -361,7 +361,7 @@ func (h *Handler) renderTrackerConfigWithError(w http.ResponseWriter, r *http.Re
 	data.SubmittedAPIKey = submittedKey
 	data.ValidationError = validationError
 	data.ValidationTrackerName = cfg.Trackers[idx].Name
-	h.render(w, "tracker_config_unified", data)
+	h.render(w, r, "tracker_config_unified", data)
 }
 
 func submittedAutobrrSettings(r *http.Request, def autobrrdefs.Def) map[string]string {

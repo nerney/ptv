@@ -26,6 +26,7 @@
     <summary class="config-section-title">PTV Configuration</summary>
     <div class="section-rule"></div>
     <form method="POST" action="/tracker/{{ .TrackerIdx }}/config" class="config-form">
+    {{ $.CSRFField }}
       <div class="config-row">
         <div class="field">
           <label class="field-label">URL</label>
@@ -58,6 +59,7 @@
       </div>
     </form>
     <form method="POST" action="/tracker/{{ .TrackerIdx }}/config/delete" class="inline-form">
+    {{ $.CSRFField }}
       <button type="submit" class="btn-sm btn-danger" onclick="return confirm('Remove {{ .Tracker.Name }} from dashboard?')">DELETE TRACKER</button>
     </form>
   </details>
@@ -75,6 +77,7 @@
     {{ $selectedProfile := .Tracker.ProwlarrAppProfileID }}
     {{ $selectedTags := .Tracker.ProwlarrTags }}
     <form method="POST" action="/tracker/{{ .TrackerIdx }}/config/prowlarr" class="config-form">
+    {{ $.CSRFField }}
       <div class="config-row prowlarr-field-row">
         <div class="field">
           <label class="field-label">Name</label>
@@ -151,6 +154,7 @@
     </div>
     {{ else if .AutobrrDefinition }}
     <form method="POST" action="/tracker/{{ .TrackerIdx }}/config/autobrr" class="config-form">
+    {{ $.CSRFField }}
       {{ range .AutobrrSettingRows }}
       {{ template "setting_field" . }}
       {{ end }}
@@ -164,15 +168,18 @@
     {{ if gt .Tracker.AutobrrID 0 }}
     <div class="import-submit-row">
       <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/autobrr/toggle" class="inline-form">
+    {{ $.CSRFField }}
         <button type="submit" class="btn-sm btn-ghost">{{ if .Tracker.AutobrrEnabled }}DISABLE IN AUTOBRR{{ else }}ENABLE IN AUTOBRR{{ end }}</button>
       </form>
       <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/autobrr/remove" class="inline-form">
+    {{ $.CSRFField }}
         <button type="submit" class="btn-sm btn-danger">REMOVE FROM AUTOBRR</button>
       </form>
     </div>
     {{ else }}
     <div class="import-submit-row">
       <form method="POST" action="/config/tracker/{{ .TrackerIdx }}/autobrr/add" class="inline-form">
+    {{ $.CSRFField }}
         <button type="submit" class="btn-primary">ADD TO AUTOBRR →</button>
       </form>
     </div>

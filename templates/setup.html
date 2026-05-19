@@ -30,6 +30,7 @@
     {{ end }}
 
     <form method="POST" action="/setup" class="auth-form" autocomplete="off">
+    {{ $.CSRFField }}
       <div class="field">
         <label class="field-label">USERNAME</label>
         <input class="field-input" type="text" name="username" required autofocus>

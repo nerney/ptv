@@ -39,7 +39,7 @@ func (h *Handler) configAutobrrPage(w http.ResponseWriter, r *http.Request) {
 	if cfg.AutobrrURL == "" {
 		cfg.AutobrrURL = "http://autobrr:7474"
 	}
-	h.render(w, "config_autobrr", configAutobrrData{
+	h.render(w, r, "config_autobrr", configAutobrrData{
 		Config:       cfg,
 		FlashError:   r.URL.Query().Get("err"),
 		FlashSuccess: r.URL.Query().Get("ok"),
@@ -300,18 +300,18 @@ func (h *Handler) importAutobrrPage(w http.ResponseWriter, r *http.Request) {
 	}
 	if !cfg.AutobrrEnabled || cfg.AutobrrURL == "" || cfg.AutobrrAPIKey == "" {
 		data.LoadError = "Autobrr integration is not configured."
-		h.render(w, "autobrr_import", data)
+		h.render(w, r, "autobrr_import", data)
 		return
 	}
 	rows, err := h.loadAutobrrImportable(&cfg)
 	if err != nil {
 		data.LoadError = err.Error()
-		h.render(w, "autobrr_import", data)
+		h.render(w, r, "autobrr_import", data)
 		return
 	}
 	data.OK = true
 	data.Importable = rows
-	h.render(w, "autobrr_import", data)
+	h.render(w, r, "autobrr_import", data)
 }
 
 // importAutobrrSubmit links each selected PTV tracker to its matching Autobrr

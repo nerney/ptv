@@ -5,9 +5,11 @@
 package handlers
 
 import (
+	"crypto/rand"
 	"embed"
 	"html/template"
 	"net/http"
+	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -15,6 +17,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/gorilla/csrf"
 
 	"github.com/nerney/ptv/internal/auth"
 	"github.com/nerney/ptv/internal/autobrrdefs"
@@ -29,6 +32,7 @@ const (
 	// sessionCookieName is the name of the single auth cookie. It carries
 	// only an opaque session ID; the derived key lives in process memory.
 	sessionCookieName = "ptdash_sid"
+	csrfCookieName    = "_ptv_csrf"
 
 	// setupWindow caps how long the dashboard accepts setup requests on
 	// first boot. If the user doesn't complete /setup within this window,
@@ -116,6 +120,7 @@ func NewRouter(store *config.Store, syncer *defs.Syncer, autobrrSyncer *autobrrd
 	r.Use(noCache)
 	r.Use(h.sleepGuard)
 	r.Use(h.ipAllowGuard)
+	r.Use(csrfMiddleware())
 
 	// Static assets — IP-gated, but no session required (CSS shouldn't 302).
 	r.Handle("/static/*", http.FileServer(http.FS(fs)))
@@ -423,16 +428,77 @@ func (h *Handler) parseTemplates() map[string]*template.Template {
 }
 
 // render writes a full HTML page (layout + content) for the named template.
-func (h *Handler) render(w http.ResponseWriter, page string, data interface{}) {
+func (h *Handler) render(w http.ResponseWriter, r *http.Request, page string, data interface{}) {
 	t, ok := h.templates[page]
 	if !ok {
 		http.Error(w, "template not found: "+page, http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := t.ExecuteTemplate(w, "layout", data); err != nil {
+	if err := t.ExecuteTemplate(w, "layout", templateDataWithCSRF(r, data)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func newCSRFKey() []byte {
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err != nil {
+		panic("csrf key generation failed: " + err.Error())
+	}
+	return key
+}
+
+func csrfMiddleware() func(http.Handler) http.Handler {
+	return csrf.Protect(
+		newCSRFKey(),
+		csrf.CookieName(csrfCookieName),
+		csrf.Path("/"),
+		csrf.SameSite(csrf.SameSiteStrictMode),
+		csrf.Secure(false),
+	)
+}
+
+func templateDataWithCSRF(r *http.Request, data interface{}) interface{} {
+	field := csrf.TemplateField(r)
+	token := csrf.Token(r)
+	if data == nil {
+		return map[string]interface{}{"CSRFField": field, "CSRFToken": token}
+	}
+	v := reflect.ValueOf(data)
+	for v.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			return map[string]interface{}{"CSRFField": field, "CSRFToken": token}
+		}
+		v = v.Elem()
+	}
+	if v.Kind() == reflect.Map && v.Type().Key().Kind() == reflect.String {
+		out := make(map[string]interface{}, v.Len()+1)
+		for _, key := range v.MapKeys() {
+			out[key.String()] = v.MapIndex(key).Interface()
+		}
+		out["CSRFField"] = field
+		out["CSRFToken"] = token
+		return out
+	}
+	if v.Kind() != reflect.Struct {
+		return struct {
+			Data      interface{}
+			CSRFField template.HTML
+			CSRFToken string
+		}{Data: data, CSRFField: field, CSRFToken: token}
+	}
+	out := make(map[string]interface{}, v.NumField()+1)
+	out["CSRFField"] = field
+	out["CSRFToken"] = token
+	t := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		sf := t.Field(i)
+		if sf.PkgPath != "" {
+			continue
+		}
+		out[sf.Name] = v.Field(i).Interface()
+	}
+	return out
 }
 
 // renderPartial writes only the named template (no surrounding layout) —

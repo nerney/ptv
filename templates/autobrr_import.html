@@ -52,6 +52,7 @@
     <p class="config-hint">Select managed trackers to link to their existing Autobrr indexers. Linking enables the IRC connection status indicator on each card.</p>
 
     <form method="POST" action="/config/integrations/autobrr/import" class="import-form" id="import-form">
+    {{ $.CSRFField }}
       <label class="import-row import-row-check import-row-all">
         <input type="checkbox" id="import-check-all" class="import-check">
         <span class="tracker-select-name">SELECT ALL</span>
