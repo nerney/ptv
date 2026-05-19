@@ -97,6 +97,11 @@
       {{ $field := . }}
       <div class="config-row prowlarr-field-row">
         <div class="field">
+          {{ if .Info }}
+          {{ if .HelpText }}
+          <p class="config-hint">{{ .HelpText }}</p>
+          {{ end }}
+          {{ else }}
           <label class="field-label">{{ if .Label }}{{ .Label }}{{ else }}{{ .Name }}{{ end }}</label>
           {{ if .SelectOptions }}
             <select class="field-input field-select" name="setting_{{ .Name }}">
@@ -122,6 +127,7 @@
           {{ end }}
           {{ if .HelpLink }}
           <p class="config-hint"><a href="{{ .HelpLink }}" class="link-action" rel="noreferrer">→ HELP</a></p>
+          {{ end }}
           {{ end }}
         </div>
       </div>
