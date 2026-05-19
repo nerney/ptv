@@ -91,14 +91,46 @@ func TestRenderFieldsSanitizesHTMLHelpText(t *testing.T) {
 	}}
 
 	fields := RenderFields(schema, nil)
-	if fields[0].HelpText != "About Your API Key Use your tracker API key & keep it private." {
+	if fields[0].HelpText != "Use your tracker API key & keep it private." {
 		t.Fatalf("apiKey HelpText = %q", fields[0].HelpText)
 	}
-	if fields[1].HelpText != "Account Inactivity The time a torrent should be seeded before stopping..." {
+	if fields[1].HelpText != "The time a torrent should be seeded before stopping..." {
 		t.Fatalf("accountInactivity HelpText = %q", fields[1].HelpText)
 	}
 	if fields[2].HelpText != "The time a torrent should be seeded before stopping..." {
 		t.Fatalf("plain HelpText changed: %q", fields[2].HelpText)
+	}
+}
+
+func TestRenderFieldsMarksInfoFieldsDisplayOnly(t *testing.T) {
+	schema := IndexerSchema{Fields: []SchemaField{
+		{
+			Name:     "info_key",
+			Label:    "About Your API Key",
+			HelpText: "About Your API Key Use your tracker API key.",
+			Value:    "do not render as input",
+		},
+		{
+			Name:     "accountInactivity",
+			Label:    "Account Inactivity",
+			HelpText: "Account Inactivity Seeding may prevent account inactivity.",
+		},
+		{
+			Name:  "minimumSeeders",
+			Label: "Minimum Seeders",
+			Value: "1",
+		},
+	}}
+
+	fields := RenderFields(schema, nil)
+	if !fields[0].Info || fields[0].Value != "" || fields[0].HelpText != "Use your tracker API key." {
+		t.Fatalf("api key info field rendered incorrectly: %+v", fields[0])
+	}
+	if !fields[1].Info || fields[1].Value != "" || fields[1].HelpText != "Seeding may prevent account inactivity." {
+		t.Fatalf("account inactivity info field rendered incorrectly: %+v", fields[1])
+	}
+	if fields[2].Info || fields[2].Value != "1" {
+		t.Fatalf("ordinary field rendered incorrectly: %+v", fields[2])
 	}
 }
 

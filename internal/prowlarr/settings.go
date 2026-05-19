@@ -25,6 +25,7 @@ type SettingField struct {
 	Value         string
 	HasValue      bool
 	Secret        bool
+	Info          bool
 	Required      bool
 	Advanced      bool
 	SelectOptions []SettingOption
@@ -120,20 +121,26 @@ func RenderFields(schema IndexerSchema, settings map[string]string) []SettingFie
 			ok = true
 		}
 		secret := IsSecretField(f)
+		info := IsInfoField(f)
 		r := SettingField{
 			Name:          f.Name,
 			Label:         f.Label,
-			HelpText:      plainHelpText(f.HelpText),
+			HelpText:      displayHelpText(f),
 			HelpLink:      f.HelpLink,
 			Placeholder:   f.Placeholder,
 			Type:          f.Type,
 			HasValue:      ok && v != "",
 			Secret:        secret,
+			Info:          info,
 			Required:      f.Required,
 			Advanced:      f.Advanced,
 			SelectOptions: renderOptions(f.SelectOptions),
 		}
-		if !secret {
+		if info {
+			if r.HelpText == "" {
+				r.HelpText = plainHelpText(v)
+			}
+		} else if !secret {
 			r.Value = v
 		} else if r.HasValue {
 			r.Value = ExistingSecretValue
@@ -141,6 +148,18 @@ func RenderFields(schema IndexerSchema, settings map[string]string) []SettingFie
 		out = append(out, r)
 	}
 	return out
+}
+
+func displayHelpText(f SchemaField) string {
+	text := plainHelpText(f.HelpText)
+	label := plainHelpText(f.Label)
+	if label != "" {
+		text = strings.TrimSpace(strings.TrimPrefix(text, label))
+	}
+	for _, heading := range []string{"About Your API Key", "Account Inactivity"} {
+		text = strings.TrimSpace(strings.TrimPrefix(text, heading))
+	}
+	return text
 }
 
 func plainHelpText(s string) string {
@@ -277,6 +296,19 @@ func IsDefinitionFileField(f SchemaField) bool {
 		low == "definition_file" ||
 		strings.Contains(low, "definitionfile") ||
 		strings.Contains(low, "definition_file")
+}
+
+func IsInfoField(f SchemaField) bool {
+	name := strings.ToLower(f.Name)
+	label := strings.ToLower(f.Label)
+	help := strings.ToLower(plainHelpText(f.HelpText))
+	return f.Type == "info" ||
+		strings.HasPrefix(name, "info_") ||
+		name == "accountinactivity" ||
+		strings.Contains(label, "about your api key") ||
+		strings.Contains(label, "account inactivity") ||
+		strings.Contains(help, "about your api key") ||
+		strings.Contains(help, "account inactivity")
 }
 
 func schemaFieldNames(schema IndexerSchema) map[string]bool {
