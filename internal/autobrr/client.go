@@ -220,13 +220,20 @@ func (c *Client) SchemaForURL(trackerURL string) (*IndexerSchema, error) {
 // populating credential fields with apiKey. Returns the created indexer on
 // success.
 func (c *Client) AddIndexer(schema IndexerSchema, trackerURL, apiKey string) (*Indexer, error) {
+	return c.AddIndexerWithSettings(schema, trackerURL, settingsToMap(schema.Settings, apiKey))
+}
+
+// AddIndexerWithSettings creates a new indexer in Autobrr from the supplied
+// schema and explicit settings map. Callers that have a schema-backed desired
+// settings map should use this to preserve non-core fields.
+func (c *Client) AddIndexerWithSettings(schema IndexerSchema, trackerURL string, settings map[string]string) (*Indexer, error) {
 	payload := indexerWrite{
 		Name:           schema.Name,
 		Identifier:     schema.Identifier,
 		Enabled:        true,
 		Implementation: schema.Implementation,
 		BaseURL:        strings.TrimRight(trackerURL, "/"),
-		Settings:       settingsToMap(schema.Settings, apiKey),
+		Settings:       settings,
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {
@@ -259,6 +266,12 @@ func (c *Client) UpdateIndexer(existing Indexer, trackerURL, apiKey string) (*In
 			settings[k] = apiKey
 		}
 	}
+	return c.UpdateIndexerWithSettings(existing, trackerURL, settings)
+}
+
+// UpdateIndexerWithSettings pushes an explicit settings map into an existing
+// Autobrr indexer while preserving its identity and enabled state.
+func (c *Client) UpdateIndexerWithSettings(existing Indexer, trackerURL string, settings map[string]string) (*Indexer, error) {
 	payload := indexerWrite{
 		ID:             existing.ID,
 		Name:           existing.Name,

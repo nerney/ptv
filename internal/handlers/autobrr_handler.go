@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/nerney/ptv/internal/autobrr"
+	"github.com/nerney/ptv/internal/autobrrdefs"
 	"github.com/nerney/ptv/internal/config"
 )
 
@@ -147,9 +148,11 @@ func (h *Handler) configTrackerAutobrrAdd(w http.ResponseWriter, r *http.Request
 	}
 
 	var linked *autobrr.Indexer
+	var linkedSettings map[string]string
 	var action string
 	if existing != nil {
 		linked = existing
+		linkedSettings = h.autobrrSettingsForLinked(entry, *linked)
 		action = "linked to existing"
 	} else {
 		schema, err := client.SchemaForURL(entry.TrackerURL)
@@ -157,18 +160,31 @@ func (h *Handler) configTrackerAutobrrAdd(w http.ResponseWriter, r *http.Request
 			flash(w, r, pathConfigTrackers, "", "Autobrr schema lookup failed: "+err.Error())
 			return
 		}
-		added, err := client.AddIndexer(*schema, entry.TrackerURL, entry.APIKey)
+		settings := h.autobrrSettingsForNew(entry, *schema)
+		var added *autobrr.Indexer
+		if settings != nil {
+			added, err = client.AddIndexerWithSettings(*schema, entry.TrackerURL, settings)
+		} else {
+			added, err = client.AddIndexer(*schema, entry.TrackerURL, entry.APIKey)
+		}
 		if err != nil {
 			flash(w, r, pathConfigTrackers, "", "Autobrr add failed: "+err.Error())
 			return
 		}
 		linked = added
+		linkedSettings = settings
+		if def := h.autobrrDefFor(entry, linked.Identifier); def != nil {
+			linkedSettings = autobrr.MergeSettings(*def, linkedSettings, autobrr.SettingsFromPairs(linked.Settings))
+		} else if linkedSettings == nil {
+			linkedSettings = autobrr.SettingsFromPairs(linked.Settings)
+		}
 		action = "added to"
 	}
 
 	cfg.Trackers[idx].AutobrrID = int(linked.ID)
 	cfg.Trackers[idx].AutobrrIdentifier = linked.Identifier
 	cfg.Trackers[idx].AutobrrEnabled = linked.Enabled
+	cfg.Trackers[idx].AutobrrSettings = linkedSettings
 	if err := h.store.Save(cfg); err != nil {
 		flash(w, r, pathConfigTrackers, "", "Save failed: "+err.Error())
 		return
@@ -262,6 +278,7 @@ type autobrrImportRow struct {
 	AutobrrID      int
 	Identifier     string
 	Enabled        bool
+	Settings       map[string]string
 }
 
 // importAutobrrPage lists managed PTV trackers that have a matching Autobrr
@@ -334,6 +351,7 @@ func (h *Handler) importAutobrrSubmit(w http.ResponseWriter, r *http.Request) {
 			cfg.Trackers[i].AutobrrID = row.AutobrrID
 			cfg.Trackers[i].AutobrrIdentifier = row.Identifier
 			cfg.Trackers[i].AutobrrEnabled = row.Enabled
+			cfg.Trackers[i].AutobrrSettings = row.Settings
 			linked = append(linked, t.Name)
 			h.log.Info("CONFIG", fmt.Sprintf("Linked %q to Autobrr indexer id=%d", t.Name, row.AutobrrID))
 			break
@@ -383,7 +401,46 @@ func (h *Handler) loadAutobrrImportable(cfg *config.Config) ([]autobrrImportRow,
 			AutobrrID:      int(idx.ID),
 			Identifier:     idx.Identifier,
 			Enabled:        idx.Enabled,
+			Settings:       h.autobrrSettingsForLinked(t, idx),
 		})
 	}
 	return out, nil
+}
+
+func (h *Handler) autobrrSettingsForNew(t *config.TrackerEntry, schema autobrr.IndexerSchema) map[string]string {
+	def := h.autobrrDefFor(t, schema.Identifier)
+	if def == nil {
+		return nil
+	}
+	settings := autobrr.MergeSettings(*def, autobrr.SettingsFromPairs(schema.Settings), nil)
+	return autobrr.WithCoreCredentials(*def, settings, t.APIKey)
+}
+
+func (h *Handler) autobrrSettingsForLinked(t *config.TrackerEntry, idx autobrr.Indexer) map[string]string {
+	settings := autobrr.SettingsFromPairs(idx.Settings)
+	def := h.autobrrDefFor(t, idx.Identifier)
+	if def == nil {
+		return settings
+	}
+	return autobrr.MergeSettings(*def, settings, nil)
+}
+
+func (h *Handler) autobrrDefFor(t *config.TrackerEntry, identifier string) *autobrrdefs.Def {
+	if h.autobrrSyncer == nil {
+		return nil
+	}
+	if identifier != "" {
+		if def := h.autobrrSyncer.ByIdentifier(identifier); def != nil {
+			return def
+		}
+	}
+	if t.AutobrrIdentifier != "" {
+		if def := h.autobrrSyncer.ByIdentifier(t.AutobrrIdentifier); def != nil {
+			return def
+		}
+	}
+	if t.TrackerURL != "" {
+		return h.autobrrSyncer.ByURL(t.TrackerURL)
+	}
+	return nil
 }
