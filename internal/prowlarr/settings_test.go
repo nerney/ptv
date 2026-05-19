@@ -32,24 +32,41 @@ func TestMergeSettingsPreservesBlankSecret(t *testing.T) {
 	}
 }
 
+func TestMergeSettingsPreservesDummySecret(t *testing.T) {
+	schema := IndexerSchema{Fields: []SchemaField{
+		{Name: "apiKey", Label: "API Key", Value: "not-real"},
+	}}
+	existing := map[string]string{"apiKey": "saved-secret"}
+	submitted := map[string]string{"apiKey": ExistingSecretValue}
+
+	got := MergeSettings(schema, existing, submitted)
+	if got["apiKey"] != "saved-secret" {
+		t.Fatalf("apiKey = %q, want preserved secret", got["apiKey"])
+	}
+}
+
 func TestRenderFieldsDoesNotExposeSecrets(t *testing.T) {
 	schema := IndexerSchema{Fields: []SchemaField{
-		{Name: "apiKey", Label: "API Key", Required: true},
+		{Name: "apiKey", Label: "API Key", Required: true, Value: "not-real"},
 		{Name: "baseUrl", Label: "URL"},
+		{Name: "definitionFile", Label: "Definition File", Value: "unit3d.yml"},
+		{Name: "minimumSeeders", Label: "Minimum Seeders"},
 	}}
 	settings := map[string]string{
-		"apiKey":  "saved-secret",
-		"baseUrl": "https://tracker.test",
+		"apiKey":         "saved-secret",
+		"baseUrl":        "https://tracker.test",
+		"definitionFile": "unit3d.yml",
+		"minimumSeeders": "2",
 	}
 
 	fields := RenderFields(schema, settings)
 	if len(fields) != 2 {
 		t.Fatalf("len(fields) = %d", len(fields))
 	}
-	if !fields[0].Secret || fields[0].Value != "" || !fields[0].HasValue {
+	if !fields[0].Secret || fields[0].Value != ExistingSecretValue || !fields[0].HasValue {
 		t.Fatalf("secret field rendered incorrectly: %+v", fields[0])
 	}
-	if fields[1].Secret || fields[1].Value != "https://tracker.test" {
+	if fields[1].Name != "minimumSeeders" || fields[1].Secret || fields[1].Value != "2" {
 		t.Fatalf("non-secret field rendered incorrectly: %+v", fields[1])
 	}
 }

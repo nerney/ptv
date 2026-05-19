@@ -9,8 +9,11 @@ import (
 	"strings"
 )
 
+const ExistingSecretValue = "__ptv_existing_secret__"
+
 // SettingField is the sanitized view of a Prowlarr schema field that the UI
-// may render. Secret values are never copied into Value.
+// may render. Secret values are represented by ExistingSecretValue, never by
+// the stored secret itself.
 type SettingField struct {
 	Name          string
 	Label         string
@@ -60,7 +63,7 @@ func MergeSettings(schema IndexerSchema, existing, submitted map[string]string) 
 
 		next, submittedField := submitted[f.Name]
 		if submittedField {
-			if IsSecretField(f) && next == "" && hasCurrent {
+			if IsSecretField(f) && (next == "" || next == ExistingSecretValue) && hasCurrent {
 				out[f.Name] = current
 				continue
 			}
@@ -107,6 +110,9 @@ func WithCoreCredentials(schema IndexerSchema, settings map[string]string, track
 func RenderFields(schema IndexerSchema, settings map[string]string) []SettingField {
 	out := make([]SettingField, 0, len(schema.Fields))
 	for _, f := range schema.Fields {
+		if IsURLField(f) || IsDefinitionFileField(f) {
+			continue
+		}
 		v, ok := settings[f.Name]
 		if !ok && hasRealDefault(f.Value) {
 			v = valueString(f.Value)
@@ -128,6 +134,8 @@ func RenderFields(schema IndexerSchema, settings map[string]string) []SettingFie
 		}
 		if !secret {
 			r.Value = v
+		} else if r.HasValue {
+			r.Value = ExistingSecretValue
 		}
 		out = append(out, r)
 	}
@@ -179,7 +187,27 @@ func DiffSettings(schema IndexerSchema, left, right map[string]string) []string 
 // IsSecretField follows PTV's Prowlarr rule: required schema fields without a
 // real default are secret-like and must not be rendered back to the frontend.
 func IsSecretField(f SchemaField) bool {
-	return f.Required && !hasRealDefault(f.Value)
+	low := strings.ToLower(f.Name)
+	return (f.Required && !hasRealDefault(f.Value)) ||
+		low == "apikey" ||
+		low == "api_key" ||
+		low == "passkey" ||
+		low == "apitoken" ||
+		strings.Contains(low, "key") ||
+		strings.Contains(low, "token")
+}
+
+func IsURLField(f SchemaField) bool {
+	low := strings.ToLower(f.Name)
+	return low == "baseurl" || low == "sitelink" || strings.Contains(low, "url")
+}
+
+func IsDefinitionFileField(f SchemaField) bool {
+	low := strings.ToLower(f.Name)
+	return low == "definitionfile" ||
+		low == "definition_file" ||
+		strings.Contains(low, "definitionfile") ||
+		strings.Contains(low, "definition_file")
 }
 
 func schemaFieldNames(schema IndexerSchema) map[string]bool {
