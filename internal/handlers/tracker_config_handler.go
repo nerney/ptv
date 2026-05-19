@@ -47,18 +47,43 @@ type unifiedTrackerConfigData struct {
 	ProwlarrEnabled       bool
 	ProwlarrSchema        *prowlarr.IndexerSchema
 	ProwlarrBaseName      string
-	ProwlarrFields        []prowlarr.SettingField
+	ProwlarrSettingRows   []settingFieldRow
 	ProwlarrAppProfiles   []prowlarr.AppProfile
 	ProwlarrTags          []prowlarr.Tag
 	ProwlarrError         string
 	AutobrrEnabled        bool
 	AutobrrDefinition     *autobrrdefs.Def
-	AutobrrFields         []autobrr.SettingField
+	AutobrrSettingRows    []settingFieldRow
 	AutobrrError          string
 	FlashError            string
 	FlashSuccess          string
 	ValidationError       string
 	ValidationTrackerName string
+}
+
+type settingFieldRow struct {
+	RowClass  string
+	Field     settingFieldView
+	ExtraHint string
+}
+
+type settingFieldView struct {
+	Name          string
+	Label         string
+	Type          string
+	Value         string
+	HasValue      bool
+	Secret        bool
+	Required      bool
+	HelpText      string
+	Placeholder   string
+	Info          bool
+	SelectOptions []settingSelectOption
+}
+
+type settingSelectOption struct {
+	Name  string
+	Value string
 }
 
 func (h *Handler) trackerConfigPage(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +121,7 @@ func (h *Handler) buildUnifiedTrackerConfigData(idx int, cfg *config.Config) uni
 		}
 		if schema, err := h.prowlarrSchemaByName(t.DefinitionName); err == nil {
 			data.ProwlarrSchema = schema
-			data.ProwlarrFields = prowlarr.RenderFields(*schema, t.ProwlarrSettings())
+			data.ProwlarrSettingRows = prowlarrSettingRows(prowlarr.RenderFields(*schema, t.ProwlarrSettings()))
 		} else {
 			data.ProwlarrError = "Schema unavailable: " + err.Error()
 		}
@@ -110,13 +135,74 @@ func (h *Handler) buildUnifiedTrackerConfigData(idx int, cfg *config.Config) uni
 	if data.AutobrrEnabled {
 		if def := h.autobrrDefFor(t, t.AutobrrIdentifier()); def != nil {
 			data.AutobrrDefinition = def
-			data.AutobrrFields = autobrr.RenderFields(*def, t.AutobrrSettings())
+			data.AutobrrSettingRows = autobrrSettingRows(autobrr.RenderFields(*def, t.AutobrrSettings()))
 		} else {
 			data.AutobrrError = "Definition not available"
 		}
 	}
 
 	return data
+}
+
+func prowlarrSettingRows(fields []prowlarr.SettingField) []settingFieldRow {
+	rows := make([]settingFieldRow, 0, len(fields))
+	for _, f := range fields {
+		options := make([]settingSelectOption, 0, len(f.SelectOptions))
+		for _, opt := range f.SelectOptions {
+			options = append(options, settingSelectOption{Name: opt.Name, Value: opt.Value})
+		}
+		label := f.Label
+		if label == "" {
+			label = f.Name
+		}
+		rows = append(rows, settingFieldRow{
+			RowClass: "prowlarr-field-row",
+			Field: settingFieldView{
+				Name:          f.Name,
+				Label:         label,
+				Type:          f.Type,
+				Value:         f.Value,
+				HasValue:      f.HasValue,
+				Secret:        f.Secret,
+				Required:      f.Required,
+				HelpText:      f.HelpText,
+				Placeholder:   f.Placeholder,
+				Info:          f.Info,
+				SelectOptions: options,
+			},
+		})
+	}
+	return rows
+}
+
+func autobrrSettingRows(fields []autobrr.SettingField) []settingFieldRow {
+	rows := make([]settingFieldRow, 0, len(fields))
+	for _, f := range fields {
+		label := f.Label
+		if label == "" {
+			label = f.Name
+		}
+		extraHint := ""
+		if f.Layer == "irc" {
+			extraHint = "IRC setting"
+		}
+		rows = append(rows, settingFieldRow{
+			RowClass:  "autobrr-field-row",
+			ExtraHint: extraHint,
+			Field: settingFieldView{
+				Name:        f.Name,
+				Label:       label,
+				Type:        f.Type,
+				Value:       f.Value,
+				HasValue:    f.HasValue,
+				Secret:      f.Secret,
+				Required:    f.Required,
+				HelpText:    f.Help,
+				Placeholder: "",
+			},
+		})
+	}
+	return rows
 }
 
 func (h *Handler) trackerAutobrrConfigPost(w http.ResponseWriter, r *http.Request) {

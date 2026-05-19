@@ -121,31 +121,8 @@
       </div>
       {{ end }}
 
-      {{ range .ProwlarrFields }}
-      <div class="config-row prowlarr-field-row">
-        <div class="field">
-          <label class="field-label">{{ .Label }}</label>
-          {{ $fieldValue := .Value }}
-          {{ if .Secret }}
-          <input class="field-input" type="password" name="setting_{{ .Name }}" autocomplete="off" {{ if .HasValue }}placeholder="set — enter new value to replace"{{ else if .Required }}placeholder="required"{{ end }}>
-          {{ else if eq .Type "checkbox" }}
-          <input type="hidden" name="setting_{{ .Name }}" value="false">
-          <label class="checkline">
-            <input type="checkbox" name="setting_{{ .Name }}" value="true" {{ if eq $fieldValue "true" }}checked{{ end }}>
-            <span>enabled</span>
-          </label>
-          {{ else if eq .Type "select" }}
-          <select class="field-input field-select" name="setting_{{ .Name }}">
-            {{ range .SelectOptions }}
-            <option value="{{ .Value }}" {{ if eq .Value $fieldValue }}selected{{ end }}>{{ .Name }}</option>
-            {{ end }}
-          </select>
-          {{ else }}
-          <input class="field-input" type="text" name="setting_{{ .Name }}" value="{{ $fieldValue }}" autocomplete="off" placeholder="{{ .Placeholder }}">
-          {{ end }}
-          {{ if .HelpText }}<p class="config-hint">{{ .HelpText }}</p>{{ end }}
-        </div>
-      </div>
+      {{ range .ProwlarrSettingRows }}
+      {{ template "setting_field" . }}
       {{ end }}
 
       <div class="import-submit-row">
@@ -174,28 +151,8 @@
     </div>
     {{ else if .AutobrrDefinition }}
     <form method="POST" action="/tracker/{{ .TrackerIdx }}/config/autobrr" class="config-form">
-      {{ range .AutobrrFields }}
-      <div class="config-row autobrr-field-row">
-        <div class="field">
-          <label class="field-label">{{ .Label }}</label>
-          {{ $fieldValue := .Value }}
-          {{ if .Secret }}
-          <input class="field-input" type="password" name="setting_{{ .Name }}" autocomplete="off" {{ if .HasValue }}placeholder="set — enter new value to replace"{{ else }}placeholder="required"{{ end }}>
-          {{ else if eq .Type "checkbox" }}
-          <input type="hidden" name="setting_{{ .Name }}" value="false">
-          <label class="checkline">
-            <input type="checkbox" name="setting_{{ .Name }}" value="true" {{ if eq $fieldValue "true" }}checked{{ end }}>
-            <span>enabled</span>
-          </label>
-          {{ else if eq .Type "number" }}
-          <input class="field-input" type="number" name="setting_{{ .Name }}" value="{{ $fieldValue }}" autocomplete="off">
-          {{ else }}
-          <input class="field-input" type="text" name="setting_{{ .Name }}" value="{{ $fieldValue }}" autocomplete="off">
-          {{ end }}
-          {{ if .Help }}<p class="config-hint">{{ .Help }}</p>{{ end }}
-          {{ if eq .Layer "irc" }}<p class="config-hint muted">IRC setting</p>{{ end }}
-        </div>
-      </div>
+      {{ range .AutobrrSettingRows }}
+      {{ template "setting_field" . }}
       {{ end }}
 
       <div class="import-submit-row">
