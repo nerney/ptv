@@ -195,3 +195,27 @@ func TestDiffSettingsNormalizesBlankCheckboxFalse(t *testing.T) {
 		t.Fatalf("DiffSettings() = %v, want preferMagnetUrl drift", diff)
 	}
 }
+
+func TestIndexerSchemaForPayloadFillsRequiredRootDefaults(t *testing.T) {
+	schema := IndexerSchema{AppProfileID: 0, Priority: 0}
+
+	got := IndexerSchemaForPayload(schema, 7)
+	if got.AppProfileID != 7 {
+		t.Fatalf("AppProfileID = %d, want fallback app profile", got.AppProfileID)
+	}
+	if got.Priority != DefaultIndexerPriority {
+		t.Fatalf("Priority = %d, want default priority", got.Priority)
+	}
+}
+
+func TestIndexerSchemaForPayloadPreservesValidRootValues(t *testing.T) {
+	schema := IndexerSchema{AppProfileID: 3, Priority: 10}
+
+	got := IndexerSchemaForPayload(schema, 7)
+	if got.AppProfileID != 3 {
+		t.Fatalf("AppProfileID = %d, want schema value", got.AppProfileID)
+	}
+	if got.Priority != 10 {
+		t.Fatalf("Priority = %d, want schema value", got.Priority)
+	}
+}

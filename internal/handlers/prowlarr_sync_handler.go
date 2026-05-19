@@ -266,7 +266,16 @@ func (h *Handler) pushTrackerToProwlarr(
 		// Stale ID → fall through to create.
 	}
 
-	added, aErr := client.AddIndexerWithFields(*schema, fields)
+	appProfileID := schema.AppProfileID
+	if appProfileID <= 0 {
+		var pErr error
+		appProfileID, pErr = client.FirstAppProfileID()
+		if pErr != nil {
+			return "created", pErr
+		}
+	}
+	payloadSchema := prowlarr.IndexerSchemaForPayload(*schema, appProfileID)
+	added, aErr := client.AddIndexerWithFields(payloadSchema, fields)
 	if aErr != nil {
 		return "created", aErr
 	}

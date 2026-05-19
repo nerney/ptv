@@ -168,6 +168,15 @@ func (h *Handler) pushTrackerProwlarrConfig(cfg *config.Config, i int, schema pr
 		return nil
 	}
 
+	appProfileID := schema.AppProfileID
+	if appProfileID <= 0 {
+		var err error
+		appProfileID, err = client.FirstAppProfileID()
+		if err != nil {
+			return err
+		}
+	}
+	schema = prowlarr.IndexerSchemaForPayload(schema, appProfileID)
 	updated, err := client.AddIndexerWithFields(schema, fields)
 	if err != nil {
 		return err

@@ -41,6 +41,8 @@ type IndexerSchema struct {
 	Implementation     string        `json:"implementation"`
 	ImplementationName string        `json:"implementationName"`
 	ConfigContract     string        `json:"configContract"`
+	AppProfileID       int           `json:"appProfileId"`
+	Priority           int           `json:"priority"`
 	InfoLink           string        `json:"infoLink,omitempty"`
 	Tags               []int         `json:"tags"`
 	Fields             []SchemaField `json:"fields"`
@@ -72,10 +74,17 @@ type Indexer struct {
 	Implementation     string        `json:"implementation"`
 	ImplementationName string        `json:"implementationName"`
 	ConfigContract     string        `json:"configContract"`
+	AppProfileID       int           `json:"appProfileId"`
+	Priority           int           `json:"priority"`
 	Fields             []SchemaField `json:"fields"`
 	Tags               []int         `json:"tags"`
 	IndexerUrls        []string      `json:"indexerUrls"`
 	DefinitionName     string        `json:"definitionName"`
+}
+
+type AppProfile struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 func (c *Client) do(method, path string, body io.Reader) (*http.Response, []byte, error) {
@@ -183,6 +192,34 @@ func (c *Client) GetIndexers() ([]Indexer, error) {
 	return out, nil
 }
 
+func (c *Client) GetAppProfiles() ([]AppProfile, error) {
+	resp, body, err := c.do("GET", "/api/v1/appprofile", nil)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("prowlarr returned HTTP %d", resp.StatusCode)
+	}
+	var out []AppProfile
+	if err := json.Unmarshal(body, &out); err != nil {
+		return nil, fmt.Errorf("parse: %w", err)
+	}
+	return out, nil
+}
+
+func (c *Client) FirstAppProfileID() (int, error) {
+	profiles, err := c.GetAppProfiles()
+	if err != nil {
+		return 0, err
+	}
+	for _, p := range profiles {
+		if p.ID > 0 {
+			return p.ID, nil
+		}
+	}
+	return 0, fmt.Errorf("no Prowlarr app profiles found")
+}
+
 func (c *Client) SchemaByName(name string) (*IndexerSchema, error) {
 	schemas, err := c.GetAllSchemas()
 	if err != nil {
@@ -208,6 +245,8 @@ func (c *Client) AddIndexerWithFields(schema IndexerSchema, fields []SchemaField
 		"implementation":     schema.Implementation,
 		"implementationName": schema.ImplementationName,
 		"configContract":     schema.ConfigContract,
+		"appProfileId":       schema.AppProfileID,
+		"priority":           schema.Priority,
 		"fields":             fields,
 		"tags":               []int{},
 	}
