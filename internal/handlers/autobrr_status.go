@@ -64,7 +64,7 @@ func (h *Handler) fillAutobrrIRCStatus(cfg config.Config, views []*trackerCardVi
 	// Skip the API call entirely if no tracker is linked to Autobrr.
 	anyLinked := false
 	for _, v := range views {
-		if v.AutobrrID > 0 {
+		if v.AutobrrID() > 0 {
 			anyLinked = true
 			break
 		}
@@ -80,10 +80,10 @@ func (h *Handler) fillAutobrrIRCStatus(cfg config.Config, views []*trackerCardVi
 		return
 	}
 	for _, v := range views {
-		if v.AutobrrID == 0 {
+		if v.AutobrrID() == 0 {
 			continue
 		}
-		network := autobrr.MatchNetwork(networks, v.AutobrrIdentifier, v.Name)
+		network := autobrr.MatchNetwork(networks, v.AutobrrIdentifier(), v.Name)
 		if network == nil {
 			v.AutobrrIRCStatus = ircStatusUnknown
 			continue

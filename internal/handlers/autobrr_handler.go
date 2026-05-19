@@ -182,10 +182,11 @@ func (h *Handler) configTrackerAutobrrAdd(w http.ResponseWriter, r *http.Request
 		action = "added to"
 	}
 
-	cfg.Trackers[idx].AutobrrID = int(linked.ID)
-	cfg.Trackers[idx].AutobrrIdentifier = linked.Identifier
-	cfg.Trackers[idx].AutobrrEnabled = linked.Enabled
-	cfg.Trackers[idx].AutobrrSettings = linkedSettings
+	autobrrCfg := cfg.Trackers[idx].EnsureAutobrr()
+	autobrrCfg.ID = int(linked.ID)
+	autobrrCfg.Identifier = linked.Identifier
+	autobrrCfg.Enabled = linked.Enabled
+	autobrrCfg.Settings = linkedSettings
 	if err := h.store.Save(cfg); err != nil {
 		flash(w, r, basePath, "", "Save failed: "+err.Error())
 		return
@@ -204,24 +205,24 @@ func (h *Handler) configTrackerAutobrrToggle(w http.ResponseWriter, r *http.Requ
 	}
 	basePath := trackerConfigPath(idx) + "/autobrr"
 	entry := cfg.Trackers[idx]
-	if entry.AutobrrID == 0 {
+	if entry.AutobrrID() == 0 {
 		flash(w, r, basePath, "", entry.Name+" is not in Autobrr.")
 		return
 	}
 
 	client := autobrr.New(cfg.AutobrrURL, cfg.AutobrrAPIKey, h.log)
-	if err := client.SetEnabled(int64(entry.AutobrrID), !entry.AutobrrEnabled); err != nil {
+	if err := client.SetEnabled(int64(entry.AutobrrID()), !entry.AutobrrEnabled()); err != nil {
 		flash(w, r, basePath, "", "Autobrr update failed: "+err.Error())
 		return
 	}
 
-	cfg.Trackers[idx].AutobrrEnabled = !entry.AutobrrEnabled
+	cfg.Trackers[idx].EnsureAutobrr().Enabled = !entry.AutobrrEnabled()
 	if err := h.store.Save(cfg); err != nil {
 		flash(w, r, basePath, "", "Save failed: "+err.Error())
 		return
 	}
 	status := "disabled"
-	if cfg.Trackers[idx].AutobrrEnabled {
+	if cfg.Trackers[idx].AutobrrEnabled() {
 		status = "enabled"
 	}
 	h.log.Info("CONFIG", fmt.Sprintf("%s %s in Autobrr", entry.Name, status))
@@ -238,19 +239,20 @@ func (h *Handler) configTrackerAutobrrRemove(w http.ResponseWriter, r *http.Requ
 	}
 	basePath := trackerConfigPath(idx) + "/autobrr"
 	entry := cfg.Trackers[idx]
-	if entry.AutobrrID == 0 {
+	if entry.AutobrrID() == 0 {
 		flash(w, r, basePath, "", entry.Name+" is not in Autobrr.")
 		return
 	}
 	client := autobrr.New(cfg.AutobrrURL, cfg.AutobrrAPIKey, h.log)
-	if err := client.DeleteIndexer(int64(entry.AutobrrID)); err != nil {
+	if err := client.DeleteIndexer(int64(entry.AutobrrID())); err != nil {
 		flash(w, r, basePath, "", "Autobrr remove failed: "+err.Error())
 		return
 	}
 
-	cfg.Trackers[idx].AutobrrID = 0
-	cfg.Trackers[idx].AutobrrIdentifier = ""
-	cfg.Trackers[idx].AutobrrEnabled = false
+	autobrrCfg := cfg.Trackers[idx].EnsureAutobrr()
+	autobrrCfg.ID = 0
+	autobrrCfg.Identifier = ""
+	autobrrCfg.Enabled = false
 	if err := h.store.Save(cfg); err != nil {
 		flash(w, r, basePath, "", "Save failed: "+err.Error())
 		return
@@ -351,10 +353,11 @@ func (h *Handler) importAutobrrSubmit(w http.ResponseWriter, r *http.Request) {
 			if strings.ToLower(t.DefinitionName) != strings.ToLower(defName) {
 				continue
 			}
-			cfg.Trackers[i].AutobrrID = row.AutobrrID
-			cfg.Trackers[i].AutobrrIdentifier = row.Identifier
-			cfg.Trackers[i].AutobrrEnabled = row.Enabled
-			cfg.Trackers[i].AutobrrSettings = row.Settings
+			autobrrCfg := cfg.Trackers[i].EnsureAutobrr()
+			autobrrCfg.ID = row.AutobrrID
+			autobrrCfg.Identifier = row.Identifier
+			autobrrCfg.Enabled = row.Enabled
+			autobrrCfg.Settings = row.Settings
 			linked = append(linked, t.Name)
 			h.log.Info("CONFIG", fmt.Sprintf("Linked %q to Autobrr indexer id=%d", t.Name, row.AutobrrID))
 			break
@@ -390,7 +393,7 @@ func (h *Handler) loadAutobrrImportable(cfg *config.Config) ([]autobrrImportRow,
 
 	var out []autobrrImportRow
 	for _, t := range cfg.Trackers {
-		if t.AutobrrID > 0 || t.TrackerURL == "" {
+		if t.AutobrrID() > 0 || t.TrackerURL == "" {
 			continue
 		}
 		idx, ok := byURL[autobrr.NormalizeURL(t.TrackerURL)]
@@ -437,8 +440,8 @@ func (h *Handler) autobrrDefFor(t *config.TrackerEntry, identifier string) *auto
 			return def
 		}
 	}
-	if t.AutobrrIdentifier != "" {
-		if def := h.autobrrSyncer.ByIdentifier(t.AutobrrIdentifier); def != nil {
+	if t.AutobrrIdentifier() != "" {
+		if def := h.autobrrSyncer.ByIdentifier(t.AutobrrIdentifier()); def != nil {
 			return def
 		}
 	}

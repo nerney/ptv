@@ -43,8 +43,8 @@ func (h *Handler) autobrrSyncPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for i, t := range cfg.Trackers {
-		row := autobrrSyncRow{TrackerIdx: i, Name: t.Name, TrackerURL: t.TrackerURL, AutobrrID: t.AutobrrID}
-		if t.AutobrrID > 0 {
+		row := autobrrSyncRow{TrackerIdx: i, Name: t.Name, TrackerURL: t.TrackerURL, AutobrrID: t.AutobrrID()}
+		if t.AutobrrID() > 0 {
 			row.State = "linked"
 			data.Linked = append(data.Linked, row)
 		} else {
@@ -117,7 +117,7 @@ func (h *Handler) syncTrackerToAutobrr(cfg *config.Config, client *autobrr.Clien
 		if err != nil {
 			return err
 		}
-	} else if entry.AutobrrID > 0 {
+	} else if entry.AutobrrID() > 0 {
 		settings := h.autobrrSettingsForLinked(entry, *existing)
 		if def := h.autobrrDefFor(entry, existing.Identifier); def != nil {
 			settings = autobrr.WithCoreCredentials(*def, settings, entry.APIKey)
@@ -127,9 +127,10 @@ func (h *Handler) syncTrackerToAutobrr(cfg *config.Config, client *autobrr.Clien
 			return err
 		}
 	}
-	cfg.Trackers[i].AutobrrID = int(existing.ID)
-	cfg.Trackers[i].AutobrrIdentifier = existing.Identifier
-	cfg.Trackers[i].AutobrrEnabled = existing.Enabled
-	cfg.Trackers[i].AutobrrSettings = h.autobrrSettingsForLinked(entry, *existing)
+	autobrrCfg := cfg.Trackers[i].EnsureAutobrr()
+	autobrrCfg.ID = int(existing.ID)
+	autobrrCfg.Identifier = existing.Identifier
+	autobrrCfg.Enabled = existing.Enabled
+	autobrrCfg.Settings = h.autobrrSettingsForLinked(entry, *existing)
 	return nil
 }

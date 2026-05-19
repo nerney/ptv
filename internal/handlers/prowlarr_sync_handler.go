@@ -117,13 +117,13 @@ func (h *Handler) classifyTracker(i int, t *config.TrackerEntry, byID map[int]pr
 		TrackerIdx: i,
 		Name:       t.Name,
 		TrackerURL: t.TrackerURL,
-		ProwlarrID: t.ProwlarrID,
+		ProwlarrID: t.ProwlarrID(),
 	}
-	if t.ProwlarrID == 0 {
+	if t.ProwlarrID() == 0 {
 		row.State = syncNew
 		return row
 	}
-	idx, exists := byID[t.ProwlarrID]
+	idx, exists := byID[t.ProwlarrID()]
 	if !exists {
 		row.State = syncNew
 		return row
@@ -140,7 +140,7 @@ func (h *Handler) classifyTracker(i int, t *config.TrackerEntry, byID map[int]pr
 		row.SchemaError = err.Error()
 		return row
 	}
-	desired := prowlarr.WithCoreCredentials(*schema, t.ProwlarrSettings, t.TrackerURL, t.APIKey)
+	desired := prowlarr.WithCoreCredentials(*schema, t.ProwlarrSettings(), t.TrackerURL, t.APIKey)
 	actual := prowlarr.SettingsFromFields(*schema, idx.Fields)
 	root := h.desiredProwlarrRootForCompare(t, *schema)
 	actualRoot := prowlarr.RootConfigFromIndexer(idx)
@@ -250,7 +250,7 @@ func (h *Handler) pushTrackerToProwlarr(
 	if sErr != nil {
 		return "pushed", fmt.Errorf("schema lookup: %w", sErr)
 	}
-	settings := prowlarr.WithCoreCredentials(*schema, t.ProwlarrSettings, t.TrackerURL, t.APIKey)
+	settings := prowlarr.WithCoreCredentials(*schema, t.ProwlarrSettings(), t.TrackerURL, t.APIKey)
 	fields := prowlarr.FieldsForPayload(*schema, settings)
 	root, rootErr := h.prowlarrRootConfig(cfg, i, *schema, client)
 	if rootErr != nil {
@@ -258,8 +258,8 @@ func (h *Handler) pushTrackerToProwlarr(
 	}
 
 	// Update path: dashboard has a Prowlarr ID AND Prowlarr still has it.
-	if t.ProwlarrID != 0 {
-		if existing, ok := byID[t.ProwlarrID]; ok {
+	if t.ProwlarrID() != 0 {
+		if existing, ok := byID[t.ProwlarrID()]; ok {
 			updated, uErr := client.UpdateIndexerWithRoot(existing, fields, root)
 			if uErr != nil {
 				return "updated", uErr
@@ -269,14 +269,15 @@ func (h *Handler) pushTrackerToProwlarr(
 				return "updated", uErr
 			}
 			cfg.Trackers[i].Enabled = updated.Enable
-			cfg.Trackers[i].ProwlarrName = prowlarr.BaseIndexerName(updated.Name)
-			cfg.Trackers[i].ProwlarrAppProfileID = updated.AppProfileID
-			cfg.Trackers[i].ProwlarrTags = append([]int(nil), updated.Tags...)
+			prowlarrCfg := cfg.Trackers[i].EnsureProwlarr()
+			prowlarrCfg.Name = prowlarr.BaseIndexerName(updated.Name)
+			prowlarrCfg.AppProfileID = updated.AppProfileID
+			prowlarrCfg.Tags = append([]int(nil), updated.Tags...)
 			returned := prowlarr.SettingsFromFields(*schema, updated.Fields)
-			cfg.Trackers[i].ProwlarrSettings = prowlarr.MergeSettings(*schema, settings, returned)
+			prowlarrCfg.Settings = prowlarr.MergeSettings(*schema, settings, returned)
 			now := time.Now()
-			cfg.Trackers[i].ProwlarrLastSync = &now
-			cfg.Trackers[i].ProwlarrSyncError = ""
+			prowlarrCfg.LastSync = &now
+			prowlarrCfg.SyncError = ""
 			return "updated", nil
 		}
 		// Stale ID → fall through to create.
@@ -300,25 +301,26 @@ func (h *Handler) pushTrackerToProwlarr(
 	if aErr != nil {
 		return "created", aErr
 	}
-	cfg.Trackers[i].ProwlarrID = added.ID
 	cfg.Trackers[i].Enabled = added.Enable
-	cfg.Trackers[i].ProwlarrName = prowlarr.BaseIndexerName(added.Name)
-	cfg.Trackers[i].ProwlarrAppProfileID = added.AppProfileID
-	cfg.Trackers[i].ProwlarrTags = append([]int(nil), added.Tags...)
+	prowlarrCfg := cfg.Trackers[i].EnsureProwlarr()
+	prowlarrCfg.ID = added.ID
+	prowlarrCfg.Name = prowlarr.BaseIndexerName(added.Name)
+	prowlarrCfg.AppProfileID = added.AppProfileID
+	prowlarrCfg.Tags = append([]int(nil), added.Tags...)
 	returned := prowlarr.SettingsFromFields(*schema, added.Fields)
-	cfg.Trackers[i].ProwlarrSettings = prowlarr.MergeSettings(*schema, settings, returned)
+	prowlarrCfg.Settings = prowlarr.MergeSettings(*schema, settings, returned)
 	now := time.Now()
-	cfg.Trackers[i].ProwlarrLastSync = &now
-	cfg.Trackers[i].ProwlarrSyncError = ""
+	prowlarrCfg.LastSync = &now
+	prowlarrCfg.SyncError = ""
 	return "created", nil
 }
 
 func (h *Handler) desiredProwlarrRootForCompare(t *config.TrackerEntry, schema prowlarr.IndexerSchema) prowlarr.IndexerRootConfig {
-	appProfileID := t.ProwlarrAppProfileID
+	appProfileID := t.ProwlarrAppProfileID()
 	if appProfileID <= 0 {
 		appProfileID = schema.AppProfileID
 	}
-	return prowlarr.RootConfig(prowlarrBaseName(t), t.Enabled, appProfileID, t.ProwlarrTags)
+	return prowlarr.RootConfig(prowlarrBaseName(t), t.Enabled, appProfileID, t.ProwlarrTags())
 }
 
 // flashSyncResult mirrors flashImportResult — same three-way redirect

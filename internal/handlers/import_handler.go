@@ -174,7 +174,7 @@ func (h *Handler) runImport(
 			h.log.Err("CONFIG", fmt.Sprintf("Prowlarr import schema failed for %q: %s", idx.Name, sErr.Error()))
 			continue
 		}
-		entry.ProwlarrSettings = prowlarr.SettingsFromFields(*schema, idx.Fields)
+		entry.EnsureProwlarr().Settings = prowlarr.SettingsFromFields(*schema, idx.Fields)
 
 		// Validate against the tracker API. Failure doesn't block the import —
 		// the row lands with empty stats per spec.
@@ -232,16 +232,18 @@ func (h *Handler) buildImportEntry(
 		return nil, skipAlreadyManaged
 	}
 	return &config.TrackerEntry{
-		DefinitionName:       schemaName,
-		TrackerType:          typeMap[strings.ToLower(schemaName)],
-		Name:                 idx.Name,
-		TrackerURL:           idxURL,
-		APIKey:               key,
-		ProwlarrID:           idx.ID,
-		Enabled:              idx.Enable,
-		ProwlarrName:         prowlarr.BaseIndexerName(idx.Name),
-		ProwlarrAppProfileID: idx.AppProfileID,
-		ProwlarrTags:         append([]int(nil), idx.Tags...),
+		DefinitionName: schemaName,
+		TrackerType:    typeMap[strings.ToLower(schemaName)],
+		Name:           idx.Name,
+		TrackerURL:     idxURL,
+		APIKey:         key,
+		Enabled:        idx.Enable,
+		Prowlarr: &config.ProwlarrTrackerConfig{
+			ID:           idx.ID,
+			Name:         prowlarr.BaseIndexerName(idx.Name),
+			AppProfileID: idx.AppProfileID,
+			Tags:         append([]int(nil), idx.Tags...),
+		},
 	}, ""
 }
 

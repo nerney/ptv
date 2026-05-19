@@ -28,10 +28,11 @@ func (h *Handler) configTrackerProwlarrPost(w http.ResponseWriter, r *http.Reque
 	if newURL := strings.TrimSpace(r.FormValue("url")); newURL != "" {
 		cfg.Trackers[idx].TrackerURL = newURL
 	}
-	cfg.Trackers[idx].ProwlarrName = strings.TrimSpace(r.FormValue("prowlarr_name"))
 	cfg.Trackers[idx].Enabled = formCheckboxChecked(r.Form["enabled"])
-	cfg.Trackers[idx].ProwlarrAppProfileID = formInt(r.FormValue("app_profile_id"))
-	cfg.Trackers[idx].ProwlarrTags = submittedIntSlice(r.Form["tag"])
+	prowlarrCfg := cfg.Trackers[idx].EnsureProwlarr()
+	prowlarrCfg.Name = strings.TrimSpace(r.FormValue("prowlarr_name"))
+	prowlarrCfg.AppProfileID = formInt(r.FormValue("app_profile_id"))
+	prowlarrCfg.Tags = submittedIntSlice(r.Form["tag"])
 	schema, err := h.prowlarrSchemaByName(cfg.Trackers[idx].DefinitionName)
 	if err != nil {
 		flash(w, r, trackerConfigPath(idx), "", "Schema unavailable — re-import from Prowlarr when available: "+err.Error())
@@ -39,7 +40,7 @@ func (h *Handler) configTrackerProwlarrPost(w http.ResponseWriter, r *http.Reque
 	}
 
 	submitted := submittedProwlarrSettings(r, *schema)
-	cfg.Trackers[idx].ProwlarrSettings = prowlarr.MergeSettings(*schema, cfg.Trackers[idx].ProwlarrSettings, submitted)
+	prowlarrCfg.Settings = prowlarr.MergeSettings(*schema, prowlarrCfg.Settings, submitted)
 	if err := h.store.Save(cfg); err != nil {
 		flash(w, r, trackerConfigPath(idx), "", "Save failed: "+err.Error())
 		return
@@ -88,7 +89,7 @@ func (h *Handler) pushTrackerProwlarrConfig(cfg *config.Config, i int, schema pr
 	if t.TrackerURL == "" || t.APIKey == "" {
 		return fmt.Errorf("missing core tracker URL or API key")
 	}
-	settings := prowlarr.WithCoreCredentials(schema, t.ProwlarrSettings, t.TrackerURL, t.APIKey)
+	settings := prowlarr.WithCoreCredentials(schema, t.ProwlarrSettings(), t.TrackerURL, t.APIKey)
 	fields := prowlarr.FieldsForPayload(schema, settings)
 	client := prowlarr.New(cfg.ProwlarrURL, cfg.ProwlarrAPIKey, h.log)
 	root, err := h.prowlarrRootConfig(cfg, i, schema, client)
@@ -96,8 +97,8 @@ func (h *Handler) pushTrackerProwlarrConfig(cfg *config.Config, i int, schema pr
 		return err
 	}
 
-	if t.ProwlarrID != 0 {
-		existing, err := client.GetIndexer(t.ProwlarrID)
+	if t.ProwlarrID() != 0 {
+		existing, err := client.GetIndexer(t.ProwlarrID())
 		if err != nil {
 			return err
 		}
@@ -111,13 +112,14 @@ func (h *Handler) pushTrackerProwlarrConfig(cfg *config.Config, i int, schema pr
 		}
 		now := time.Now()
 		cfg.Trackers[i].Enabled = updated.Enable
-		cfg.Trackers[i].ProwlarrName = prowlarr.BaseIndexerName(updated.Name)
-		cfg.Trackers[i].ProwlarrAppProfileID = updated.AppProfileID
-		cfg.Trackers[i].ProwlarrTags = append([]int(nil), updated.Tags...)
+		prowlarrCfg := cfg.Trackers[i].EnsureProwlarr()
+		prowlarrCfg.Name = prowlarr.BaseIndexerName(updated.Name)
+		prowlarrCfg.AppProfileID = updated.AppProfileID
+		prowlarrCfg.Tags = append([]int(nil), updated.Tags...)
 		returned := prowlarr.SettingsFromFields(schema, updated.Fields)
-		cfg.Trackers[i].ProwlarrSettings = prowlarr.MergeSettings(schema, settings, returned)
-		cfg.Trackers[i].ProwlarrLastSync = &now
-		cfg.Trackers[i].ProwlarrSyncError = ""
+		prowlarrCfg.Settings = prowlarr.MergeSettings(schema, settings, returned)
+		prowlarrCfg.LastSync = &now
+		prowlarrCfg.SyncError = ""
 		return nil
 	}
 
@@ -140,15 +142,16 @@ func (h *Handler) pushTrackerProwlarrConfig(cfg *config.Config, i int, schema pr
 		return err
 	}
 	now := time.Now()
-	cfg.Trackers[i].ProwlarrID = updated.ID
 	cfg.Trackers[i].Enabled = updated.Enable
-	cfg.Trackers[i].ProwlarrName = prowlarr.BaseIndexerName(updated.Name)
-	cfg.Trackers[i].ProwlarrAppProfileID = updated.AppProfileID
-	cfg.Trackers[i].ProwlarrTags = append([]int(nil), updated.Tags...)
+	prowlarrCfg := cfg.Trackers[i].EnsureProwlarr()
+	prowlarrCfg.ID = updated.ID
+	prowlarrCfg.Name = prowlarr.BaseIndexerName(updated.Name)
+	prowlarrCfg.AppProfileID = updated.AppProfileID
+	prowlarrCfg.Tags = append([]int(nil), updated.Tags...)
 	returned := prowlarr.SettingsFromFields(schema, updated.Fields)
-	cfg.Trackers[i].ProwlarrSettings = prowlarr.MergeSettings(schema, settings, returned)
-	cfg.Trackers[i].ProwlarrLastSync = &now
-	cfg.Trackers[i].ProwlarrSyncError = ""
+	prowlarrCfg.Settings = prowlarr.MergeSettings(schema, settings, returned)
+	prowlarrCfg.LastSync = &now
+	prowlarrCfg.SyncError = ""
 	return nil
 }
 
@@ -156,10 +159,10 @@ func (h *Handler) prowlarrRootConfig(cfg *config.Config, i int, schema prowlarr.
 	t := cfg.Trackers[i]
 	name := prowlarrBaseName(t)
 	enabled := t.Enabled
-	if t.ProwlarrID == 0 {
+	if t.ProwlarrID() == 0 {
 		enabled = true
 	}
-	appProfileID := t.ProwlarrAppProfileID
+	appProfileID := t.ProwlarrAppProfileID()
 	if appProfileID <= 0 {
 		appProfileID = schema.AppProfileID
 	}
@@ -170,10 +173,11 @@ func (h *Handler) prowlarrRootConfig(cfg *config.Config, i int, schema prowlarr.
 			return prowlarr.IndexerRootConfig{}, err
 		}
 	}
-	cfg.Trackers[i].ProwlarrName = prowlarr.BaseIndexerName(name)
-	cfg.Trackers[i].ProwlarrAppProfileID = appProfileID
+	prowlarrCfg := cfg.Trackers[i].EnsureProwlarr()
+	prowlarrCfg.Name = prowlarr.BaseIndexerName(name)
+	prowlarrCfg.AppProfileID = appProfileID
 	cfg.Trackers[i].Enabled = enabled
-	return prowlarr.RootConfig(name, enabled, appProfileID, t.ProwlarrTags), nil
+	return prowlarr.RootConfig(name, enabled, appProfileID, t.ProwlarrTags()), nil
 }
 
 func (h *Handler) ensureProwlarrEnabled(client *prowlarr.Client, idx *prowlarr.Indexer, want bool) (*prowlarr.Indexer, error) {
@@ -204,8 +208,8 @@ func (h *Handler) ensureProwlarrEnabled(client *prowlarr.Client, idx *prowlarr.I
 }
 
 func prowlarrBaseName(t *config.TrackerEntry) string {
-	if strings.TrimSpace(t.ProwlarrName) != "" {
-		return t.ProwlarrName
+	if strings.TrimSpace(t.ProwlarrName()) != "" {
+		return t.ProwlarrName()
 	}
 	return t.Name
 }

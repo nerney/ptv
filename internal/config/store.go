@@ -83,42 +83,202 @@ type TrackerEntry struct {
 	TrackerURL     string     `json:"tracker_url"`
 	APIKey         string     `json:"api_key"`
 	Username       string     `json:"username"`
-	ProwlarrID     int        `json:"prowlarr_id"`          // 0 if not in Prowlarr
 	Enabled        bool       `json:"enabled"`              // mirrors Prowlarr's enable state
 	LastSync       *time.Time `json:"last_sync,omitempty"`  // most recent stats fetch attempt
 	UserStats      *UserStats `json:"user_stats,omitempty"` // most recent stats fetch success
 	SyncError      string     `json:"sync_error,omitempty"` // error from most recent attempt
 
-	// ProwlarrSettings is the full desired schema-field config we manage in
-	// Prowlarr, keyed by field name. Root indexer config that Prowlarr keeps
-	// outside fields (name, app profile, tags) is stored separately below.
-	ProwlarrSettings     map[string]string `json:"prowlarr_settings,omitempty"`
-	ProwlarrName         string            `json:"prowlarr_name,omitempty"`
-	ProwlarrAppProfileID int               `json:"prowlarr_app_profile_id,omitempty"`
-	ProwlarrTags         []int             `json:"prowlarr_tags,omitempty"`
-	ProwlarrLastSync     *time.Time        `json:"prowlarr_last_sync,omitempty"`
-	ProwlarrSyncError    string            `json:"prowlarr_sync_error,omitempty"`
-
-	// Autobrr integration — parallel structure to Prowlarr above. AutobrrID
-	// is the indexer ID inside Autobrr; AutobrrIdentifier is the autobrr
-	// definition slug ("alpharatio", etc.) used to match the per-tracker
-	// IRC network at render time. AutobrrEnabled mirrors Autobrr's enable
-	// state on its indexer record.
-	AutobrrID         int    `json:"autobrr_id,omitempty"`
-	AutobrrIdentifier string `json:"autobrr_identifier,omitempty"`
-	AutobrrEnabled    bool   `json:"autobrr_enabled,omitempty"`
-
-	// AutobrrSettings is the full desired config we manage in Autobrr,
-	// keyed by field name (matches the autobrr YAML def setting names).
-	// Same write/read/security contract as ProwlarrSettings above.
-	AutobrrSettings  map[string]string `json:"autobrr_settings,omitempty"`
-	AutobrrLastSync  *time.Time        `json:"autobrr_last_sync,omitempty"`
-	AutobrrSyncError string            `json:"autobrr_sync_error,omitempty"`
+	Prowlarr *ProwlarrTrackerConfig `json:"prowlarr,omitempty"`
+	Autobrr  *AutobrrTrackerConfig  `json:"autobrr,omitempty"`
 
 	// Branding — best-effort scrape of the tracker's landing page.
 	// Sticky once obtained; retried on each refresh until found.
 	FaviconDataURI string `json:"favicon_data_uri,omitempty"`
 	ThemeColor     string `json:"theme_color,omitempty"`
+}
+
+type ProwlarrTrackerConfig struct {
+	ID           int               `json:"id,omitempty"`
+	Settings     map[string]string `json:"settings,omitempty"`
+	Name         string            `json:"name,omitempty"`
+	AppProfileID int               `json:"app_profile_id,omitempty"`
+	Tags         []int             `json:"tags,omitempty"`
+	LastSync     *time.Time        `json:"last_sync,omitempty"`
+	SyncError    string            `json:"sync_error,omitempty"`
+}
+
+type AutobrrTrackerConfig struct {
+	ID         int               `json:"id,omitempty"`
+	Identifier string            `json:"identifier,omitempty"`
+	Enabled    bool              `json:"enabled,omitempty"`
+	Settings   map[string]string `json:"settings,omitempty"`
+	LastSync   *time.Time        `json:"last_sync,omitempty"`
+	SyncError  string            `json:"sync_error,omitempty"`
+}
+
+func (t *TrackerEntry) UnmarshalJSON(data []byte) error {
+	type trackerEntryAlias TrackerEntry
+	aux := struct {
+		*trackerEntryAlias
+
+		LegacyProwlarrID           int               `json:"prowlarr_id"`
+		LegacyProwlarrSettings     map[string]string `json:"prowlarr_settings"`
+		LegacyProwlarrName         string            `json:"prowlarr_name"`
+		LegacyProwlarrAppProfileID int               `json:"prowlarr_app_profile_id"`
+		LegacyProwlarrTags         []int             `json:"prowlarr_tags"`
+		LegacyProwlarrLastSync     *time.Time        `json:"prowlarr_last_sync"`
+		LegacyProwlarrSyncError    string            `json:"prowlarr_sync_error"`
+
+		LegacyAutobrrID         int               `json:"autobrr_id"`
+		LegacyAutobrrIdentifier string            `json:"autobrr_identifier"`
+		LegacyAutobrrEnabled    bool              `json:"autobrr_enabled"`
+		LegacyAutobrrSettings   map[string]string `json:"autobrr_settings"`
+		LegacyAutobrrLastSync   *time.Time        `json:"autobrr_last_sync"`
+		LegacyAutobrrSyncError  string            `json:"autobrr_sync_error"`
+	}{
+		trackerEntryAlias: (*trackerEntryAlias)(t),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if t.Prowlarr == nil && (aux.LegacyProwlarrID != 0 ||
+		len(aux.LegacyProwlarrSettings) > 0 ||
+		aux.LegacyProwlarrName != "" ||
+		aux.LegacyProwlarrAppProfileID != 0 ||
+		len(aux.LegacyProwlarrTags) > 0 ||
+		aux.LegacyProwlarrLastSync != nil ||
+		aux.LegacyProwlarrSyncError != "") {
+		t.Prowlarr = &ProwlarrTrackerConfig{
+			ID:           aux.LegacyProwlarrID,
+			Settings:     aux.LegacyProwlarrSettings,
+			Name:         aux.LegacyProwlarrName,
+			AppProfileID: aux.LegacyProwlarrAppProfileID,
+			Tags:         aux.LegacyProwlarrTags,
+			LastSync:     aux.LegacyProwlarrLastSync,
+			SyncError:    aux.LegacyProwlarrSyncError,
+		}
+	}
+	if t.Autobrr == nil && (aux.LegacyAutobrrID != 0 ||
+		aux.LegacyAutobrrIdentifier != "" ||
+		aux.LegacyAutobrrEnabled ||
+		len(aux.LegacyAutobrrSettings) > 0 ||
+		aux.LegacyAutobrrLastSync != nil ||
+		aux.LegacyAutobrrSyncError != "") {
+		t.Autobrr = &AutobrrTrackerConfig{
+			ID:         aux.LegacyAutobrrID,
+			Identifier: aux.LegacyAutobrrIdentifier,
+			Enabled:    aux.LegacyAutobrrEnabled,
+			Settings:   aux.LegacyAutobrrSettings,
+			LastSync:   aux.LegacyAutobrrLastSync,
+			SyncError:  aux.LegacyAutobrrSyncError,
+		}
+	}
+	return nil
+}
+
+func (t *TrackerEntry) EnsureProwlarr() *ProwlarrTrackerConfig {
+	if t.Prowlarr == nil {
+		t.Prowlarr = &ProwlarrTrackerConfig{}
+	}
+	return t.Prowlarr
+}
+
+func (t *TrackerEntry) EnsureAutobrr() *AutobrrTrackerConfig {
+	if t.Autobrr == nil {
+		t.Autobrr = &AutobrrTrackerConfig{}
+	}
+	return t.Autobrr
+}
+
+func (t *TrackerEntry) ProwlarrID() int {
+	if t.Prowlarr == nil {
+		return 0
+	}
+	return t.Prowlarr.ID
+}
+
+func (t *TrackerEntry) ProwlarrSettings() map[string]string {
+	if t.Prowlarr == nil {
+		return nil
+	}
+	return t.Prowlarr.Settings
+}
+
+func (t *TrackerEntry) ProwlarrName() string {
+	if t.Prowlarr == nil {
+		return ""
+	}
+	return t.Prowlarr.Name
+}
+
+func (t *TrackerEntry) ProwlarrAppProfileID() int {
+	if t.Prowlarr == nil {
+		return 0
+	}
+	return t.Prowlarr.AppProfileID
+}
+
+func (t *TrackerEntry) ProwlarrTags() []int {
+	if t.Prowlarr == nil {
+		return nil
+	}
+	return t.Prowlarr.Tags
+}
+
+func (t *TrackerEntry) ProwlarrLastSync() *time.Time {
+	if t.Prowlarr == nil {
+		return nil
+	}
+	return t.Prowlarr.LastSync
+}
+
+func (t *TrackerEntry) ProwlarrSyncError() string {
+	if t.Prowlarr == nil {
+		return ""
+	}
+	return t.Prowlarr.SyncError
+}
+
+func (t *TrackerEntry) AutobrrID() int {
+	if t.Autobrr == nil {
+		return 0
+	}
+	return t.Autobrr.ID
+}
+
+func (t *TrackerEntry) AutobrrIdentifier() string {
+	if t.Autobrr == nil {
+		return ""
+	}
+	return t.Autobrr.Identifier
+}
+
+func (t *TrackerEntry) AutobrrEnabled() bool {
+	if t.Autobrr == nil {
+		return false
+	}
+	return t.Autobrr.Enabled
+}
+
+func (t *TrackerEntry) AutobrrSettings() map[string]string {
+	if t.Autobrr == nil {
+		return nil
+	}
+	return t.Autobrr.Settings
+}
+
+func (t *TrackerEntry) AutobrrLastSync() *time.Time {
+	if t.Autobrr == nil {
+		return nil
+	}
+	return t.Autobrr.LastSync
+}
+
+func (t *TrackerEntry) AutobrrSyncError() string {
+	if t.Autobrr == nil {
+		return ""
+	}
+	return t.Autobrr.SyncError
 }
 
 // UserStats mirrors what UNIT3D returns from GET /api/user. The values

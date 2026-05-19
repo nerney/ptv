@@ -93,11 +93,11 @@ func (h *Handler) buildUnifiedTrackerConfigData(idx int, cfg *config.Config) uni
 		}
 		if schema, err := h.prowlarrSchemaByName(t.DefinitionName); err == nil {
 			data.ProwlarrSchema = schema
-			data.ProwlarrFields = prowlarr.RenderFields(*schema, t.ProwlarrSettings)
+			data.ProwlarrFields = prowlarr.RenderFields(*schema, t.ProwlarrSettings())
 		} else {
 			data.ProwlarrError = "Schema unavailable: " + err.Error()
 		}
-		baseName := t.ProwlarrName
+		baseName := t.ProwlarrName()
 		if baseName == "" {
 			baseName = t.Name
 		}
@@ -105,9 +105,9 @@ func (h *Handler) buildUnifiedTrackerConfigData(idx int, cfg *config.Config) uni
 	}
 
 	if data.AutobrrEnabled {
-		if def := h.autobrrDefFor(t, t.AutobrrIdentifier); def != nil {
+		if def := h.autobrrDefFor(t, t.AutobrrIdentifier()); def != nil {
 			data.AutobrrDefinition = def
-			data.AutobrrFields = autobrr.RenderFields(*def, t.AutobrrSettings)
+			data.AutobrrFields = autobrr.RenderFields(*def, t.AutobrrSettings())
 		} else {
 			data.AutobrrError = "Definition not available"
 		}
@@ -131,14 +131,15 @@ func (h *Handler) trackerAutobrrConfigPost(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	def := h.autobrrDefFor(cfg.Trackers[idx], cfg.Trackers[idx].AutobrrIdentifier)
+	def := h.autobrrDefFor(cfg.Trackers[idx], cfg.Trackers[idx].AutobrrIdentifier())
 	if def == nil {
 		flash(w, r, trackerConfigPath(idx), "", "Definition not available")
 		return
 	}
 
 	submitted := submittedAutobrrSettings(r, *def)
-	cfg.Trackers[idx].AutobrrSettings = autobrr.MergeSettings(*def, cfg.Trackers[idx].AutobrrSettings, submitted)
+	autobrrCfg := cfg.Trackers[idx].EnsureAutobrr()
+	autobrrCfg.Settings = autobrr.MergeSettings(*def, autobrrCfg.Settings, submitted)
 
 	if err := h.store.Save(cfg); err != nil {
 		flash(w, r, trackerConfigPath(idx), "", "Save failed: "+err.Error())
@@ -151,13 +152,13 @@ func (h *Handler) trackerAutobrrConfigPost(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if cfg.Trackers[idx].AutobrrID == 0 {
+	if cfg.Trackers[idx].AutobrrID() == 0 {
 		flash(w, r, trackerConfigPath(idx), "", "Tracker not linked to Autobrr")
 		return
 	}
 
 	if err := h.pushTrackerAutobrrConfig(cfg, idx, *def); err != nil {
-		cfg.Trackers[idx].AutobrrSyncError = err.Error()
+		cfg.Trackers[idx].EnsureAutobrr().SyncError = err.Error()
 		if saveErr := h.store.Save(cfg); saveErr != nil {
 			flash(w, r, trackerConfigPath(idx), "", "Push failed: "+err.Error()+"; save failed: "+saveErr.Error())
 			return
@@ -300,15 +301,15 @@ func (h *Handler) pushTrackerAutobrrConfig(cfg *config.Config, i int, def autobr
 	if t.APIKey == "" {
 		return fmt.Errorf("missing core tracker API key")
 	}
-	if t.AutobrrID == 0 {
+	if t.AutobrrID() == 0 {
 		return fmt.Errorf("tracker not linked to Autobrr")
 	}
 
-	settings := autobrr.WithCoreCredentials(def, t.AutobrrSettings, t.APIKey)
+	settings := autobrr.WithCoreCredentials(def, t.AutobrrSettings(), t.APIKey)
 	client := autobrr.New(cfg.AutobrrURL, cfg.AutobrrAPIKey, h.log)
 
 	// Fetch the existing indexer to get all its metadata
-	existing, err := client.GetIndexer(int64(t.AutobrrID))
+	existing, err := client.GetIndexer(int64(t.AutobrrID()))
 	if err != nil {
 		return err
 	}
@@ -321,10 +322,11 @@ func (h *Handler) pushTrackerAutobrrConfig(cfg *config.Config, i int, def autobr
 
 	// Capture and merge readback settings
 	readback := autobrr.SettingsFromPairs(updated.Settings)
-	t.AutobrrSettings = autobrr.MergeSettings(def, settings, readback)
+	autobrrCfg := t.EnsureAutobrr()
+	autobrrCfg.Settings = autobrr.MergeSettings(def, settings, readback)
 	now := time.Now()
-	t.AutobrrLastSync = &now
-	t.AutobrrSyncError = ""
+	autobrrCfg.LastSync = &now
+	autobrrCfg.SyncError = ""
 
 	return nil
 }

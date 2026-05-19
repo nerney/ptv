@@ -39,10 +39,14 @@ func TestBuildUnifiedTrackerConfigData(t *testing.T) {
 			AutobrrAPIKey:   "autobrr-key",
 			Trackers: []*config.TrackerEntry{
 				{
-					DefinitionName:    "Yu-Scene",
-					Name:              "yu-scene [ptv]",
-					ProwlarrSettings:  map[string]string{"minimumSeeders": "1"},
-					AutobrrIdentifier: "missing-def",
+					DefinitionName: "Yu-Scene",
+					Name:           "yu-scene [ptv]",
+					Prowlarr: &config.ProwlarrTrackerConfig{
+						Settings: map[string]string{"minimumSeeders": "1"},
+					},
+					Autobrr: &config.AutobrrTrackerConfig{
+						Identifier: "missing-def",
+					},
 				},
 			},
 		}
